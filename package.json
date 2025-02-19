@@ -1,0 +1,31 @@
+{
+  "name": "shipbob-node-sdk",
+  "version": "0.0.1",
+  "description": "ShipBob API node SDK",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "prebuild": "rimraf dist && eslint && prettier \"**/*.ts\" --check",
+    "build": "tsc",
+    "lint": "eslint .",
+    "prettier:write": "prettier \"**/*.ts\" --write",
+    "generate:client": "openapi-generator-cli generate -i openapi.json -g typescript -o generated/openapi --additional-properties=npmName=restClient,supportsES6=true,withInterfaces=true",
+    "test": "mocha"
+  },
+  "author": "Brian Zinn",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@openapitools/openapi-generator-cli": "^2.16.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.20.1",
+    "mocha": "^11.1.0",
+    "prettier": "^3.5.1",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1"
+  }
+}

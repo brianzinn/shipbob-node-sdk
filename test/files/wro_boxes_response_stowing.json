@@ -1,0 +1,48 @@
+[
+  {
+    "box_id": 1571189,
+    "box_number": 1,
+    "box_status": "Stowing",
+    "arrived_date": "2025-02-19T00:23:05.85+00:00",
+    "received_date": "2025-02-19T01:23:05.85+00:00",
+    "counting_started_date": "2025-02-19T02:23:05.85+00:00",
+    "tracking_number": "XXX",
+    "box_items": [
+      {
+        "quantity": 100,
+        "received_quantity": 100,
+        "stowed_quantity": 50,
+        "inventory_id": 8588331,
+        "lot_number": null,
+        "lot_date": null
+      }
+    ]
+  },
+  {
+    "box_id": 1571190,
+    "box_number": 2,
+    "box_status": "Awaiting",
+    "arrived_date": "2025-02-19T00:22:31.9966667+00:00",
+    "received_date": "2025-02-19T01:22:31.9966667+00:00",
+    "counting_started_date": "2025-02-19T02:22:31.9966667+00:00",
+    "tracking_number": "YYY",
+    "box_items": [
+      {
+        "quantity": 100,
+        "received_quantity": 100,
+        "stowed_quantity": 0,
+        "inventory_id": 8588349,
+        "lot_number": null,
+        "lot_date": null
+      },
+      {
+        "quantity": 100,
+        "received_quantity": 100,
+        "stowed_quantity": 0,
+        "inventory_id": 8588348,
+        "lot_number": null,
+        "lot_date": null
+      }
+    ]
+  }
+]

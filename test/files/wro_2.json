@@ -1,0 +1,48 @@
+{
+  "id": 443002,
+  "status": "Processing",
+  "package_type": "Pallet",
+  "box_packaging_type": "MultipleSkuPerBox",
+  "expected_arrival_date": "2025-03-11T14:15:22+00:00",
+  "insert_date": "2025-02-19T03:19:37.3484349+00:00",
+  "last_updated_date": "2025-02-19T03:19:39.4328299+00:00",
+  "box_labels_uri": "/2.0/receiving/443002/labels",
+  "fulfillment_center": {
+    "id": 10,
+    "name": "Moreno Valley (CA)",
+    "timezone": "Pacific Standard Time",
+    "address1": "28010 Eucalyptus Ave",
+    "address2": "Building #1",
+    "city": "Moreno Valley",
+    "state": "CA",
+    "country": "US",
+    "zip_code": "92555",
+    "phone_number": "8444744726",
+    "email": "<redacted>"
+  },
+  "purchase_order_number": "POTEST2",
+  "inventory_quantities": [
+    {
+      "inventory_id": 8588331,
+      "sku": "100",
+      "expected_quantity": 100,
+      "received_quantity": 0,
+      "stowed_quantity": 50
+    },
+    {
+      "inventory_id": 8588349,
+      "sku": "101",
+      "expected_quantity": 100,
+      "received_quantity": 0,
+      "stowed_quantity": 0
+    },
+    {
+      "inventory_id": 8588348,
+      "sku": "102",
+      "expected_quantity": 100,
+      "received_quantity": 0,
+      "stowed_quantity": 0
+    }
+  ],
+  "external_sync_timestamp": null
+}
