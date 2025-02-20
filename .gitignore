@@ -1,6 +1,10 @@
 dist
+generated
 node_modules
 .env
+
+# not sure if these can be shared.  provided by ShipBob
+docs
 
 # created when generator runs
 openapitools.json

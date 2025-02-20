@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 
-import { createShipBobApi, WebhookTopic } from '../src';
+import { createShipBobApi, PackagingMaterial, PackagingRequirement, ReturnAction, WebhookTopic } from '../src';
 import assert from 'assert';
 
 /**
@@ -9,27 +9,30 @@ import assert from 'assert';
 describe(' > ShipBob API tests', function shipBobAPITests() {
   beforeEach(async function beforeEach() {
     dotenv.config({
-      path: './test/.env'
+      path: './test/.env',
     });
   });
 
   // it's async, because it gets the channels and looks for 'SMA' account.
   const getApi = async () => {
     return await createShipBobApi(process.env.SHIPBOB_API_TOKEN);
-  }
+  };
 
   it.skip('shipbob API: create products', async function test() {
     const api = await getApi();
 
-    const products = [{
-      sku: '100',
-      barcode: '100100',
-      name: 'Product 100'
-    }, {
-      sku: '101',
-      barcode: '101101',
-      name: 'Product 101'
-    }]
+    const products = [
+      {
+        sku: '100',
+        barcode: '100100',
+        name: 'Product 100',
+      },
+      {
+        sku: '101',
+        barcode: '101101',
+        name: 'Product 101',
+      },
+    ];
 
     console.time('total-duration');
 
@@ -37,11 +40,11 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       console.time('single-duration');
 
       try {
-        const result = await api.addProduct({
+        const result = await api.createProduct1_0({
           barcode: product.barcode,
           name: product.name,
           reference_id: product.sku,
-          sku: product.sku
+          sku: product.sku,
         });
         if (result.success) {
           console.log(` > Created: ${result.data.id}`);
@@ -67,11 +70,48 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     console.timeEnd('total-duration');
   });
 
-  it('shipbob API: get a product by reference Id', async function test() {
+  it('shipbob API: get a product 1.0 by reference Id', async function test() {
     const api = await getApi();
-    const results = await api.getProducts({ ReferenceIds: '100' });
+    const results = await api.getProducts1_0({ ReferenceIds: '100' });
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(1, results.data, 'should have found exactly 1 product');
+  });
+
+  it.only('shipbob API: get a 2.0 product - ensure it is setup for lot', async function test() {
+    const api = await getApi();
+    const results = await api.getProducts2_0({ sku: '100' });
+    assert.ok(results.success, 'should succeed');
+    assert.strictEqual(1, results.data.length, 'should have found exactly 1 product');
+    assert.strictEqual(1, results.data[0].variants.length, 'should have found exactly 1 variant');
+    const variant = results.data[0].variants[0];
+    const productId = results.data[0].id;
+
+    console.log(`Found product: ${productId} with one variant: ${variant.id}`);
+
+    // we want this to check for 'true' actually
+    if (variant.lot_information?.is_lot !== undefined) {
+      console.log(' > not setup for lot date based picking');
+      const updateResult = await api.updateProducts2_0(productId, [
+        {
+          id: variant.id,
+          lot_information: {
+            is_lot: true,
+            minimum_shelf_life_days: null,
+          },
+          packaging_material_type_id: PackagingMaterial.Box,
+          packaging_requirement_id: PackagingRequirement['No Requirements'],
+          return_preferences: {
+            primary_action_id: ReturnAction.Quarantine,
+            backup_action_id: null,
+            instructions: null,
+            return_to_sender_primary_action_id: ReturnAction.Quarantine,
+            return_to_sender_backup_action_id: null,
+          },
+        },
+      ]);
+      console.log('update result:', updateResult);
+      assert.ok(updateResult.success);
+    }
   });
 
   it.skip('shipbob API: place an order', async function test() {
@@ -186,8 +226,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     for (const topic of [WebhookTopic.ShipmentDelivered, WebhookTopic.ShipmentException, WebhookTopic.ShipmentOnHold]) {
       const results = await api.createWebhookSubscription({
         topic,
-        subscription_url:
-          'https://<redacted>',
+        subscription_url: 'https://<redacted>',
       });
       assert.ok(results.success, 'should succeed');
       assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');

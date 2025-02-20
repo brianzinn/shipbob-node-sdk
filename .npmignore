@@ -8,3 +8,8 @@ generated
 .eslint.config.mjs
 tsconfig.json
 yarn.lock
+openapi.json
+openapitools.json
+.prettierignore
+.prettierrc
+eslint.config.mjs

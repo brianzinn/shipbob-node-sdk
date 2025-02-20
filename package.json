@@ -1,13 +1,14 @@
 {
   "name": "shipbob-node-sdk",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "ShipBob API node SDK",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
+  "type": "commonjs",
   "scripts": {
-    "prebuild": "rimraf dist && eslint && prettier \"**/*.ts\" --check",
+    "prebuild": "rimraf dist && eslint . --ignore-pattern generated/ && prettier \"**/*.ts\" --check",
     "build": "tsc",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern generated/",
     "prettier:write": "prettier \"**/*.ts\" --write",
     "generate:client": "openapi-generator-cli generate -i openapi.json -g typescript -o generated/openapi --additional-properties=npmName=restClient,supportsES6=true,withInterfaces=true",
     "test": "mocha"

@@ -1,0 +1,97 @@
+[
+  {
+    "id": 3216263,
+    "name": "test",
+    "type": "Regular",
+    "category": null,
+    "sub_category": null,
+    "user_id": 123,
+    "created_on": "2025-02-19T07:10:43.853Z",
+    "updated_on": "2025-02-19T20:14:12.009Z",
+    "taxonomy": null,
+    "variants": [
+      {
+        "barcode": "100",
+        "barcode_sticker_url": null,
+        "channel_metadata": [],
+        "reviews_pending": [],
+        "associated_bundles": [],
+        "bundle_definition": [],
+        "created_on": "2025-02-19T07:10:43.629Z",
+        "customs": {
+          "hs_tariff_code": "",
+          "country_code_of_origin": "",
+          "value": null,
+          "currency": "USD",
+          "description": "",
+          "is321_eligible": false
+        },
+        "dimension": {
+          "length": 0,
+          "width": 0,
+          "height": 0,
+          "unit": "inch",
+          "is_locked": false,
+          "source": "UserEntry"
+        },
+        "fulfillment_settings": {
+          "requires_prop65": false,
+          "serial_scan": {
+            "is_enabled": false,
+            "prefix": "",
+            "suffix": "",
+            "exact_character_length": null
+          },
+          "dangerous_goods": false,
+          "msds_url": "",
+          "is_case_pick": false,
+          "is_bpm_parcel": false
+        },
+        "gtin": "",
+        "id": 15319517,
+        "inventory": {
+          "inventory_id": 8598495,
+          "on_hand_qty": 0
+        },
+        "is_digital": false,
+        "lot_information": {
+          "is_lot": true,
+          "minimum_shelf_life_days": null
+        },
+        "name": "test",
+        "packaging_material_type": {
+          "id": 1,
+          "name": "Box"
+        },
+        "packaging_requirement": {
+          "id": 1,
+          "name": "NoRequirements"
+        },
+        "return_preferences": {
+          "primary_action": {
+            "id": 2,
+            "name": "Quarantine"
+          },
+          "backup_action": null,
+          "instructions": null,
+          "return_to_sender_primary_action": {
+            "id": 2,
+            "name": "Quarantine"
+          },
+          "return_to_sender_backup_action": null
+        },
+        "sku": "100",
+        "status": "Active",
+        "upc": "",
+        "is_image_uploaded": false,
+        "updated_on": "2025-02-19T20:14:12.008Z",
+        "weight": {
+          "weight": 0,
+          "unit": "oz"
+        },
+        "additional_hazmat_attributes": null,
+        "merge_children": []
+      }
+    ]
+  }
+]

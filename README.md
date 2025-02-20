@@ -3,7 +3,7 @@ First of all there are no official SDKs for ShipBob.  I'm just dropping this her
 
 These is just a starting point for anybody looking to integrate ShipBob into a Node.js application.
 
-You could make it run in the browser by replacing `https` with `fetch` or `axios`.  I could have used fetch as well, but in case somebody is on Node < v18 (and it wasn't stable till v21 anyway).
+It uses the built-in node.js fetch.
 
 This is not an official or supported library.  If you extend or have any issues kindly open a PR.  Not really sure anybody will ever need this as most common platforms probably have built-in support.
 
@@ -52,10 +52,17 @@ SHIPBOB_API_TOKEN=<redacted>
 - [x] Get logs for one Shipment by Shipment Id
 - [?] Get shipping methods (hard-code shipping methods?)
 
-## Products
-- [✓] Get multiple products: api.getProducts(...)
-- [✓] Add a single product to the store: api.addProduct(...)
-- [ ] Modify a single product (we will need this to add multiple barcodes)
+## Products 1.0
+- [✓] Get multiple products: api.getProducts1_0(...)
+- [✓] Add a single product to the store: api.createProduct1_0(...)
+- [x] Modify a single product (using 2.0 for additional properties)
+- [x] Add multiple products to the store
+
+## Products 2.0
+These are not documented on the site yet.
+- [✓] Get multiple products: api.getProducts2_0(...)
+- [✓] Add a single product to the store: api.createProduct2_0(...)
+- [✓] Modify a single product: api.updateProducts2_0(..,)
 - [x] Add multiple products to the store
 
 ## Inventory
