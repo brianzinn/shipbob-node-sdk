@@ -1072,16 +1072,21 @@ export const createShipBobApi = async (
       }
     }
 
-    const res = await fetch(url.href, {
+    const opts = {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${credentials.token}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
         'User-Agent': 'shipbob-node-sdk',
-      },
+      } as Record<string, string>,
       // signal: AbortSignal.timeout(60 * 1000) Node 20 only
-    });
+    };
+    if (credentials.channelId) {
+      opts.headers.shipbob_channel_id = credentials.channelId.toString();
+    }
+
+    const res = await fetch(url.href, opts);
 
     if (res.ok) {
       return {
@@ -1122,17 +1127,20 @@ export const createShipBobApi = async (
     }
 
     const url = new URL(`https://${apiBaseUrl}${path}`);
-    const res = await fetch(url.href, {
+    const opts = {
       method,
       headers: {
         Authorization: `Bearer ${credentials.token}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
         'User-Agent': 'shipbob-node-sdk',
-      },
+        shipbob_channel_id: credentials.channelId.toString(),
+      } as Record<string, string>,
       body: data !== undefined ? JSON.stringify(data) : undefined,
       // signal: AbortSignal.timeout(60 * 1000) Node 20 only
-    });
+    };
+
+    const res = await fetch(url.href, opts);
 
     if (res.ok) {
       // NOTE: should check content-type of response
