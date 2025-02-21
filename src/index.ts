@@ -35,7 +35,21 @@ export type DataResponse<T> = (
       data: object | string;
     }
 ) & {
+  headers: Record<string, string>;
   statusCode: number;
+  rateLimit: {
+    /**
+     * There are 150 calls in a sliding window of 1 minute.
+     *
+     * Retrieved from x-remaining-calls header in response.
+     * null when not found.
+     */
+    remainingCalls: Nullable<number>;
+    /**
+     * Seconds remaining in sliding window once rate limit has been exhausted.
+     */
+    retryAfter: Nullable<number>;
+  };
 };
 
 // ShipBob is potentially extending 2.0 publicly
@@ -44,6 +58,7 @@ export type DataResponse<T> = (
 const PATH_1_0_CHANNEL = '/1.0/channel';
 const PATH_1_0_PRODUCT = '/1.0/product';
 const PATH_2_0_PRODUCT = '/2.0/product';
+const PATH_EXPERIMENTAL_PRODUCT = '/experimental/product';
 const PATH_1_0_ORDER = '/1.0/order';
 /**
  * Warehouse Receiving Order
@@ -121,10 +136,191 @@ export type GetProduct1_0Result = {
 export type ActionName = 'Dispose' | 'Restock' | 'Quarantine';
 export type ProductType = 'Regular' | 'Bundle';
 
+type GetProduct2_0Variant = {
+  /**
+   * The expected barcode to be found on the item and checked during the pick process
+   */
+  barcode: string;
+  barcode_sticker_url: Nullable<string>;
+  channel_metadata: unknown[];
+  reviews_pending: unknown[];
+  associated_bundles: unknown[];
+  bundle_definition: unknown[];
+  created_on: string;
+  customs: {
+    /**
+     * The customs code (6 digit)
+     */
+    hs_tariff_code: string;
+    /**
+     * 2 character country code
+     */
+    country_code_of_origin: string;
+    /**
+     * Value of object for customs (in USD)
+     */
+    value: Nullable<string>;
+    currency: 'USD';
+    /**
+     * Description of product for customs purposes
+     */
+    description: string;
+    is321_eligible: boolean;
+  };
+  dimension: {
+    length: number;
+    width: number;
+    height: number;
+    /**
+     * "inch"
+     */
+    unit: string;
+    is_locked: boolean;
+    /**
+     * ie: "UserEntry"
+     */
+    source: string;
+  };
+  fulfillment_settings: {
+    /**
+     * If the product requires a prop65 label in the box
+     */
+    requires_prop65: false;
+    serial_scan: {
+      /**
+       * Indicates if a Serial Scan is required during the pack process.
+       * Note: Serial scan requires either a prefix or a suffix to be defined
+       */
+      is_enabled: false;
+      /**
+       * The prefix expected on the serial number
+       */
+      prefix: string;
+      /**
+       * The suffix expected on the serial number
+       */
+      suffix: string;
+      /**
+       * The exact number of characters expected in the serial number
+       */
+      exact_character_length: Nullable<number>;
+    };
+    /**
+     * If the product needs to classified as a hazmat product with the shipping carrier
+     */
+    dangerous_goods: false;
+    /**
+     * URL of the Safety Data Sheet for this product.
+     * Note: should be populated by ShipBob system via the UI, should not reference a URL outside of the ShipBob domain
+     */
+    msds_url: string;
+    /**
+     * If the product should be picked as an entire case
+     */
+    is_case_pick: boolean;
+    /**
+     * Is Bound Printed Matter, must be set by the ShipBob internal team
+     */
+    is_bpm_parcel: boolean;
+  };
+  /**
+   * Global Trade Item Number
+   */
+  gtin: string;
+  /**
+   * Variant Id (used to alter product lot, packaging, etc.)
+   */
+  id: number;
+  inventory: {
+    inventory_id: number;
+    on_hand_qty: number;
+  };
+  is_digital: boolean;
+  lot_information: {
+    /**
+     * If the product should use lot date based picking
+     */
+    is_lot: boolean;
+    minimum_shelf_life_days: Nullable<number>;
+  };
+  /**
+   * Name of the Variant (should match the Product name if a non-varying product)
+   */
+  name: string;
+  /**
+   * PDf has wrong field: The specific material to package the product in (box, poly mailer, bubble mailer, etc_
+   */
+  packaging_material_type: {
+    id: number;
+    /**
+     * Not sure what else can be here
+     */
+    name: 'Box';
+  };
+  /**
+   * PDF has wrong field. int The id of the packaging_requirement (No requirement, fragile, ship in own container, etc)
+   */
+  packaging_requirement: {
+    id: number;
+    name: 'NoRequirements' | 'Fragile'; // ??
+  };
+  return_preferences: {
+    /**
+     * Restock (1) Quarantine (2) Dispose (3)
+     */
+    primary_action: Nullable<{
+      id: number;
+      name: ActionName;
+    }>;
+    /**
+     * Restock (1) Quarantine (2) Dispose (3)
+     */
+    backup_action: Nullable<{
+      id: number;
+      name: ActionName;
+    }>;
+    /**
+     * Instructions for inspecting returns
+     */
+    instructions: Nullable<string>;
+    return_to_sender_primary_action: Nullable<{
+      id: number;
+      name: ActionName;
+    }>;
+    return_to_sender_backup_action: Nullable<{
+      id: number;
+      name: ActionName;
+    }>;
+  };
+  /**
+   * The SKU of the product. This is a required field and must be unique.
+   */
+  sku: string;
+  /**
+   * PDF is incorrect - it describes in int.  Active (1) or Inactive (2)
+   */
+  status: 'Active' | 'Inactive';
+  /**
+   * Universal Product Code
+   */
+  upc: string;
+  is_image_uploaded: false;
+  updated_on: string;
+  weight: {
+    weight: number;
+    /**
+     * ie: "oz"
+     */
+    unit: string;
+  };
+  additional_hazmat_attributes: Nullable<unknown>;
+  merge_children: [];
+};
+
 /**
- * This is just some guessing based on a response
+ * This is just some guessing based on found responses
  */
-export type GetProduct2_0Result = {
+export type GetProduct2_0Response = {
   /**
    * Product Id
    */
@@ -143,186 +339,19 @@ export type GetProduct2_0Result = {
    * null | ?
    */
   taxonomy: null;
-  variants: {
-    /**
-     * The expected barcode to be found on the item and checked during the pick process
-     */
-    barcode: string;
-    barcode_sticker_url: Nullable<string>;
-    channel_metadata: unknown[];
-    reviews_pending: unknown[];
-    associated_bundles: unknown[];
-    bundle_definition: unknown[];
-    created_on: string;
-    customs: {
-      /**
-       * The customs code (6 digit)
-       */
-      hs_tariff_code: string;
-      /**
-       * 2 character country code
-       */
-      country_code_of_origin: string;
-      /**
-       * Value of object for customs (in USD)
-       */
-      value: Nullable<string>;
-      currency: 'USD';
-      /**
-       * Description of product for customs purposes
-       */
-      description: string;
-      is321_eligible: boolean;
-    };
-    dimension: {
-      length: number;
-      width: number;
-      height: number;
-      /**
-       * "inch"
-       */
-      unit: string;
-      is_locked: boolean;
-      /**
-       * ie: "UserEntry"
-       */
-      source: string;
-    };
-    fulfillment_settings: {
-      /**
-       * If the product requires a prop65 label in the box
-       */
-      requires_prop65: false;
-      serial_scan: {
-        /**
-         * Indicates if a Serial Scan is required during the pack process.
-         * Note: Serial scan requires either a prefix or a suffix to be defined
-         */
-        is_enabled: false;
-        /**
-         * The prefix expected on the serial number
-         */
-        prefix: string;
-        /**
-         * The suffix expected on the serial number
-         */
-        suffix: string;
-        /**
-         * The exact number of characters expected in the serial number
-         */
-        exact_character_length: Nullable<number>;
-      };
-      /**
-       * If the product needs to classified as a hazmat product with the shipping carrier
-       */
-      dangerous_goods: false;
-      /**
-       * URL of the Safety Data Sheet for this product.
-       * Note: should be populated by ShipBob system via the UI, should not reference a URL outside of the ShipBob domain
-       */
-      msds_url: string;
-      /**
-       * If the product should be picked as an entire case
-       */
-      is_case_pick: boolean;
-      /**
-       * Is Bound Printed Matter, must be set by the ShipBob internal team
-       */
-      is_bpm_parcel: boolean;
-    };
-    /**
-     * Global Trade Item Number
-     */
-    gtin: string;
-    /**
-     * Variant Id (used to alter product lot, packaging, etc.)
-     */
-    id: number;
-    inventory: {
-      inventory_id: number;
-      on_hand_qty: number;
-    };
-    is_digital: boolean;
-    lot_information: {
-      /**
-       * If the product should use lot date based picking
-       */
-      is_lot: boolean;
-      minimum_shelf_life_days: Nullable<number>;
-    };
-    /**
-     * Name of the Variant (should match the Product name if a non-varying product)
-     */
-    name: string;
-    /**
-     * PDf has wrong field: The specific material to package the product in (box, poly mailer, bubble mailer, etc_
-     */
-    packaging_material_type: {
-      id: number;
-      /**
-       * Not sure what else can be here
-       */
-      name: 'Box';
-    };
-    /**
-     * PDF has wrong field. int The id of the packaging_requirement (No requirement, fragile, ship in own container, etc)
-     */
-    packaging_requirement: {
-      id: number;
-      name: 'NoRequirements' | 'Fragile'; // ??
-    };
-    return_preferences: {
-      /**
-       * Restock (1) Quarantine (2) Dispose (3)
-       */
-      primary_action: Nullable<{
-        id: number;
-        name: ActionName;
-      }>;
-      /**
-       * Restock (1) Quarantine (2) Dispose (3)
-       */
-      backup_action: Nullable<{
-        id: number;
-        name: ActionName;
-      }>;
-      /**
-       * Instructions for inspecting returns
-       */
-      instructions: Nullable<string>;
-      return_to_sender_primary_action: Nullable<{
-        id: number;
-        name: ActionName;
-      }>;
-      return_to_sender_backup_action: Nullable<{
-        id: number;
-        name: ActionName;
-      }>;
-    };
-    /**
-     * The SKU of the product. This is a required field and must be unique.
-     */
-    sku: string;
-    /**
-     * PDF is incorrect - it describes in int.  Active (1) or Inactive (2)
-     */
-    status: 'Active' | 'Inactive';
-    /**
-     * Universal Product Code
-     */
-    upc: string;
-    is_image_uploaded: false;
-    updated_on: string;
-    weight: {
-      weight: number;
-      /**
-       * ie: "oz"
-       */
-      unit: string;
-    };
-    additional_hazmat_attributes: Nullable<unknown>;
-    merge_children: [];
-  }[];
+  variants: GetProduct2_0Variant[];
+};
+
+/**
+ * Just the barcode -> barcodes on the variant seems like the only difference so far.
+ */
+export type GetProductExperimentalResponse = Omit<GetProduct2_0Response, 'variants'> & {
+  variants: (Omit<GetProduct2_0Variant, 'barcode'> & {
+    barcodes: {
+      value: string;
+      sticker_url: Nullable<string>;
+    }[];
+  })[];
 };
 
 export type OrderType = 'DTC' | 'DropShip' | 'B2B' | 'Transportation';
@@ -666,7 +695,8 @@ export type WarehouseReceivingOrderRequest = {
        */
       inventory_id: number;
       /**
-       * Lot number of the items in the box
+       * Lot number of the items in the box.  Must be supplied for products that have lot set, otherwise will be:
+       * 422 status code "Wrong Lot Information Provided For Inventory IDs: 8619859,8619860, etc."
        */
       lot_number?: Nullable<string>;
       /**
@@ -678,6 +708,8 @@ export type WarehouseReceivingOrderRequest = {
   /**
    * Expected arrival date of all the box shipments in this receiving order
    * ie: ISO date "2019-08-24T14:15:22Z"
+   *
+   * NOTE: Must be in the future or it will generate a 422 error.
    */
   expected_arrival_date: string;
   /**
@@ -973,7 +1005,14 @@ export enum ReturnAction {
   Dispose = 3,
 }
 
-export type ProductVariantRequest = {
+export type VariantRequestProductExperimental = Omit<VariantRequestProduct2_0, 'barcode'> & {
+  barcodes: {
+    value: string;
+    sticker_url: Nullable<string>;
+  }[];
+};
+
+export type VariantRequestProduct2_0 = {
   /**
    * Required for updates
    */
@@ -1030,6 +1069,65 @@ export type ProductVariantRequest = {
   };
 };
 
+export type GetProductQueryStrings = {
+  Page: number;
+  Limit: number;
+  /**
+   * Regular product (1) or Bundle (2)
+   */
+  productTypeId: 1 | 2;
+  /**
+   * Active (1) or Inactive (2)
+   */
+  variantStatus: 1 | 2;
+  /**
+   * True -> at least one variant is digital
+   * False -> at least one variant is not-digital
+   */
+  hasDigitalVariants: boolean;
+  /**
+   * Search by one or more Product Ids (comma separated) to return multiple products
+   */
+  Ids: string;
+  /**
+   * Search by one or more Variant Ids (comma separated) to return multiple products
+   */
+  VariantIds: string;
+  /**
+   * Search by product barcode
+   */
+  barcode: string;
+  /**
+   * Search by an exact sku
+   */
+  sku: string;
+  /**
+   * Search for products that vary or non-varying products
+   */
+  hasVariants: boolean;
+  /**
+   * Search by one or more InventoryIds (comma separated) to return multiple barcodes
+   */
+  InventoryId: string;
+  /**
+   * Search by Variant Name.
+   * NOTE: Query parameters should be URL encoded such as "Green%20Shirt"
+   */
+  Name: string;
+  /**
+   * Search by matching Taxonomy (category) of the product (comma separated)
+   */
+  TaxonomyIds: string;
+};
+
+export type ExperimentalPagedResult<T> = {
+  first: string;
+  next: Nullable<string>;
+  items: T[];
+  prev: Nullable<string>;
+  last: string;
+};
+
 /**
  * Create API with PAT (personal access token) - defaults to sandbox endpoints and "SMA" channel.
  *
@@ -1055,6 +1153,81 @@ export const createShipBobApi = async (
     token: personalAccessToken,
   };
 
+  const REMAINING_CALLS = 'x-remaining-calls'; // in sliding window
+  const RETRY_AFTER_SECONDS = 'x-retry-after'; // seconds to wait for rate-limiting
+  const CONTENT_TYPE = 'content-type';
+
+  const IGNORED_HEADERS = [
+    'cf-cache-status',
+    'cf-ray',
+    'connection',
+    'content-encoding',
+    'content-length',
+    // 'content-type', // useful for failed responses
+    'date',
+    'request-context',
+    'server',
+    'strict-transport-security',
+    'transfer-encoding',
+    'vary',
+    'x-powered-by',
+    REMAINING_CALLS, // part of rateLimit: {}
+    RETRY_AFTER_SECONDS, // part of rateLimit: {}
+  ];
+
+  const getResult = async <T>(res: Response): Promise<DataResponse<T>> => {
+    // ["x-remaining-calls","149"]]
+    const remainingCalls = res.headers.has(REMAINING_CALLS) ? parseInt(res.headers.get(REMAINING_CALLS)!) : null;
+
+    const retryAfter = res.headers.has(RETRY_AFTER_SECONDS) ? parseInt(res.headers.get(RETRY_AFTER_SECONDS)!) : null;
+
+    const headers = Array.from(res.headers).reduce<Record<string, string>>((prev, [key, val]) => {
+      if (IGNORED_HEADERS.indexOf(key) === -1) {
+        prev[key] = val;
+      }
+      return prev;
+    }, {});
+
+    const rateLimit = {
+      remainingCalls,
+      retryAfter,
+    };
+
+    if (res.ok) {
+      return {
+        data: (await res.json()) as T,
+        headers,
+        statusCode: res.status,
+        success: true,
+        rateLimit,
+      };
+    }
+
+    // also http status codes 400, 422 tend to be JSON
+    // application/json; charset=utf-8
+    const contentType = res.headers.has(CONTENT_TYPE) ? res.headers.get(CONTENT_TYPE) : null;
+    if (
+      contentType &&
+      (contentType.startsWith('application/json') || contentType.startsWith('application/problem+json'))
+    ) {
+      return {
+        data: await res.json(),
+        headers,
+        statusCode: res.status,
+        success: false,
+        rateLimit,
+      };
+    }
+
+    return {
+      data: await res.text(),
+      headers,
+      statusCode: res.status,
+      success: false,
+      rateLimit,
+    };
+  };
+
   /**
    * Will GET using our PAT and SAM channel
    */
@@ -1071,6 +1244,7 @@ export const createShipBobApi = async (
         url.searchParams.set(param, val);
       }
     }
+    console.log(` > GET: ${url.href}`);
 
     const opts = {
       method: 'GET',
@@ -1087,30 +1261,7 @@ export const createShipBobApi = async (
     }
 
     const res = await fetch(url.href, opts);
-
-    if (res.ok) {
-      return {
-        success: true,
-        statusCode: res.status,
-        data: (await res.json()) as T,
-      };
-    } else {
-      switch (res.status) {
-        case 400:
-        case 422:
-          return {
-            success: false,
-            statusCode: res.status,
-            data: await res.json(),
-          };
-        default:
-          return {
-            success: false,
-            statusCode: res.status,
-            data: await res.text(),
-          };
-      }
-    }
+    return getResult(res);
   };
 
   /**
@@ -1127,6 +1278,7 @@ export const createShipBobApi = async (
     }
 
     const url = new URL(`https://${apiBaseUrl}${path}`);
+    console.log(` > ${method} ${url.href}`);
     const opts = {
       method,
       headers: {
@@ -1141,31 +1293,7 @@ export const createShipBobApi = async (
     };
 
     const res = await fetch(url.href, opts);
-
-    if (res.ok) {
-      // NOTE: should check content-type of response
-      return {
-        success: true,
-        statusCode: res.status,
-        data: (await res.json()) as T,
-      };
-    } else {
-      switch (res.status) {
-        case 400:
-        case 422:
-          return {
-            success: false,
-            statusCode: res.status,
-            data: await res.json(),
-          };
-        default:
-          return {
-            success: false,
-            statusCode: res.status,
-            data: await res.text(),
-          };
-      }
-    }
+    return getResult(res);
   };
 
   const channelsResponse = await httpGet<ChannelsResponse>(credentials, PATH_1_0_CHANNEL);
@@ -1181,16 +1309,12 @@ export const createShipBobApi = async (
   credentials.channelId = smaChannel.id;
 
   return {
+    /**
+     * You would need a product id on your side.  Not sure how useful this is in all practicality unless
+     * you maintain the association on your side.
+     */
     getProductById: async (productId: number) => {
-      // productId would need to be URL encoded - not for us, it's just numeric digits
-      // NOTE: /1.0/product/888290263059
-      // ERROR: {"productId":["The value '888290263059' is not valid."]}
       const getProductResult = await httpGet<GetProduct1_0Result>(credentials, `${PATH_1_0_PRODUCT}/${productId}`);
-      console.log(
-        'get product:',
-        getProductResult.success,
-        getProductResult.success === false ? getProductResult.statusCode : 'found'
-      );
       return getProductResult;
     },
     getProducts1_0: async (
@@ -1205,18 +1329,19 @@ export const createShipBobApi = async (
       }>
     ) => {
       const getProductResult = await httpGet<GetProduct1_0Result[]>(credentials, PATH_1_0_PRODUCT, query);
-      console.log(
-        'get product 1.0:',
-        getProductResult.success,
-        getProductResult.success === false ? getProductResult.statusCode : 'found'
-      );
       return getProductResult;
     },
     /**
+     * NOTE: you need to use the headers (part of this client response) to page the results.
+     * page-number='1'
+     * page-size='50'
+     * total-count='1'
+     * total-pages='1'
+     *
      * NOTE: we can probably pass more than "variants" prop.  We could on the /1.0/product endpoint
      * NOTE: This PATCH functionality will be available in the next version available in ShipBob next large release January 2025, it may require extra scope.
      */
-    updateProducts2_0: async (productId: number, variants: ProductVariantRequest[]) => {
+    updateProduct2_0: async (productId: number, variants: VariantRequestProduct2_0[]) => {
       console.log('variants', variants);
       const updateProduct2Response = await httpData<AddProductResponse>(
         credentials,
@@ -1229,95 +1354,64 @@ export const createShipBobApi = async (
       return updateProduct2Response;
     },
     /**
+     * Unsure how this is different from /2.0/product except for "barcode" -> "barcodes"
+     */
+    updateProductExperimental: async (productId: number, variants: VariantRequestProductExperimental[]) => {
+      const updateProduct2Response = await httpData<AddProductResponse>(
+        credentials,
+        {
+          variants,
+        },
+        `${PATH_EXPERIMENTAL_PRODUCT}/${productId}`,
+        'PATCH'
+      );
+      return updateProduct2Response;
+    },
+    /**
      * Not supported here, but:
      * Some search filters allow for operators (equals, not equals, starts with, ends with, contains, etc) to get more exact values. When filtering with an operator, the query string will look like the below:
      * Example: /product?{filter}={operator}:{value}
      * Example: /product?sku=any:shirt-a,shirt-b,shirt-c Find products that match any of these SKUs
      * Example: /product?onHandQuantity=gt:0 Find products where OnHandQty greater than 0
      */
-    getProducts2_0: async (
-      query: Partial<{
-        Page: number;
-        Limit: number;
-        /**
-         * Regular product (1) or Bundle (2)
-         */
-        productTypeId: 1 | 2;
-        /**
-         * Active (1) or Inactive (2)
-         */
-        variantStatus: 1 | 2;
-        /**
-         * True -> at least one variant is digital
-         * False -> at least one variant is not-digital
-         */
-        hasDigitalVariants: boolean;
-        /**
-         * Search by one or more Product Ids (comma separated) to return multiple products
-         */
-        Ids: string;
-        /**
-         * Search by one or more Variant Ids (comma separated) to return multiple products
-         */
-        VariantIds: string;
-        /**
-         * Search by product barcode
-         */
-        barcode: string;
-        /**
-         * Search by an exact sku
-         */
-        sku: string;
-        /**
-         * Search for products that vary or non-varying products
-         */
-        hasVariants: boolean;
-        /**
-         * Search by one or more InventoryIds (comma separated) to return multiple barcodes
-         */
-        InventoryId: string;
-        /**
-         * Search by Variant Name.
-         * NOTE: Query parameters should be URL encoded such as "Green%20Shirt"
-         */
-        Name: string;
-        /**
-         * Search by matching Taxonomy (category) of the product (comma separated)
-         */
-        TaxonomyIds: string;
-      }>
-    ) => {
-      const getProductResult = await httpGet<GetProduct2_0Result[]>(credentials, PATH_2_0_PRODUCT, query);
-      console.log(
-        'get product 2.0:',
-        getProductResult.success,
-        getProductResult.success === false ? getProductResult.statusCode : 'found'
+    getProducts2_0: async (query: Partial<GetProductQueryStrings>) => {
+      const getProductResult = await httpGet<GetProduct2_0Response[]>(credentials, PATH_2_0_PRODUCT, query);
+      return getProductResult;
+    },
+    /**
+     * Note sure how this is different from /2.0/product.  Only notable difference is "barcodes" type from string to object.
+     */
+    getProductsExperimental: async (query: Partial<GetProductQueryStrings>) => {
+      const getProductResult = await httpGet<ExperimentalPagedResult<GetProductExperimentalResponse>>(
+        credentials,
+        PATH_EXPERIMENTAL_PRODUCT,
+        query
       );
       return getProductResult;
     },
     createProduct1_0: async (product: { reference_id: string; sku: string; name: string; barcode: string }) => {
       const createProductResponse = await httpData<AddProductResponse>(credentials, product, PATH_1_0_PRODUCT);
-      console.log(
-        ' > Created product:',
-        createProductResponse.success ? createProductResponse.data.reference_id : 'failed'
-      );
+      // console.log(' > Created product:',createProductResponse.success ? createProductResponse.data.reference_id : 'failed');
       return createProductResponse;
     },
     /**
      * The request part for variant is not accurate.  This is just for testing - there are no official docs.
      */
-    createProduct2_0: async (product: {
-      reference_id: string;
-      sku: string;
+    createProduct2_0: async (product: { type_id: number; name: string; variants: VariantRequestProduct2_0[] }) => {
+      const createProductResponse = await httpData<AddProductResponse>(credentials, product, PATH_2_0_PRODUCT);
+      // console.log(' > Created product:',createProductResponse.success ? createProductResponse.data.id : 'failed');
+      return createProductResponse;
+    },
+    /**
+     * Unsure how this is different from '2.0/product' except for "barcode" -> "barcodes"
+     */
+    createProductExperimental: async (product: {
       type_id: number;
       name: string;
-      variants: ProductVariantRequest[];
+      variants: VariantRequestProductExperimental[];
     }) => {
-      const createProductResponse = await httpData<AddProductResponse>(credentials, product, PATH_2_0_PRODUCT);
-      console.log(
-        ' > Created product:',
-        createProductResponse.success ? createProductResponse.data.reference_id : 'failed'
-      );
+      const createProductResponse = await httpData<AddProductResponse>(credentials, product, PATH_EXPERIMENTAL_PRODUCT);
+      // console.log(' > Created product:',createProductResponse.success ? createProductResponse.data.id : 'failed');
       return createProductResponse;
     },
     placeOrder: async (order: PlaceOrderRequest) => {
@@ -1381,11 +1475,6 @@ export const createShipBobApi = async (
         credentials,
         PATH_2_0_RECEIVING_EXTENDED,
         query
-      );
-      console.log(
-        'get receiving extended:',
-        getReceivingExtendedResult.success,
-        getReceivingExtendedResult.success === false ? getReceivingExtendedResult.statusCode : 'found'
       );
       return getReceivingExtendedResult;
     },
@@ -1452,11 +1541,6 @@ export const createShipBobApi = async (
       }>
     ) => {
       const getInventoryResult = await httpGet<GetProduct1_0Result[]>(credentials, PATH_1_0_INVENTORY, query);
-      console.log(
-        'get inventory:',
-        getInventoryResult.success,
-        getInventoryResult.success === false ? getInventoryResult.statusCode : 'found'
-      );
       return getInventoryResult;
     },
     /**

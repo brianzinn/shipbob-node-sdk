@@ -18,7 +18,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     return await createShipBobApi(process.env.SHIPBOB_API_TOKEN);
   };
 
-  it.skip('shipbob API: create products', async function test() {
+  it.only('shipbob API: create products', async function test() {
     const api = await getApi();
 
     const products = [
@@ -40,12 +40,47 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       console.time('single-duration');
 
       try {
-        const result = await api.createProduct1_0({
-          barcode: product.barcode,
+        // const result = await api.createProduct1_0({
+        //   barcode: product.barcode,
+        //   name: product.name,
+        //   reference_id: product.sku,
+        //   sku: product.sku,
+        // });
+
+        const result = await api.createProductExperimental({
+          type_id: 1,
           name: product.name,
-          reference_id: product.sku,
-          sku: product.sku,
+          variants: [
+            {
+              name: product.name,
+              lot_information: {
+                is_lot: true,
+                minimum_shelf_life_days: null,
+              },
+              barcodes: [
+                {
+                  value: product.barcode,
+                  sticker_url: null,
+                },
+                {
+                  value: '12345678',
+                  sticker_url: null,
+                },
+              ],
+              packaging_material_type_id: PackagingMaterial.Box,
+              packaging_requirement_id: PackagingRequirement['No Requirements'],
+              return_preferences: {
+                primary_action_id: ReturnAction.Quarantine,
+                backup_action_id: null,
+                instructions: null,
+                return_to_sender_primary_action_id: ReturnAction.Quarantine,
+                return_to_sender_backup_action_id: null,
+              },
+              sku: product.barcode,
+            },
+          ],
         });
+
         if (result.success) {
           console.log(` > Created: ${result.data.id}`);
           if (typeof result.data.id !== 'number') {
@@ -77,7 +112,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.strictEqual(1, results.data, 'should have found exactly 1 product');
   });
 
-  it.only('shipbob API: get a 2.0 product - ensure it is setup for lot', async function test() {
+  it('shipbob API: get a 2.0 product - ensure it is setup for lot', async function test() {
     const api = await getApi();
     const results = await api.getProducts2_0({ sku: '100' });
     assert.ok(results.success, 'should succeed');
@@ -91,7 +126,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     // we want this to check for 'true' actually
     if (variant.lot_information?.is_lot !== undefined) {
       console.log(' > not setup for lot date based picking');
-      const updateResult = await api.updateProducts2_0(productId, [
+      const updateResult = await api.updateProduct2_0(productId, [
         {
           id: variant.id,
           lot_information: {
