@@ -15,10 +15,21 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
 
   // it's async, because it gets the channels and looks for 'SMA' account.
   const getApi = async () => {
-    return await createShipBobApi(process.env.SHIPBOB_API_TOKEN);
+    const url = process.env.SHIPBOB_API_URL;
+    return await createShipBobApi(process.env.SHIPBOB_API_TOKEN, url);
   };
 
-  it.only('shipbob API: create products', async function test() {
+  it('shipbob API get products (experimental)', async function test() {
+    const api = await getApi();
+    const skuList = ['123', '456'];
+
+    const productSearch = await api.getProductsExperimental({
+      sku: `any:${skuList.join(',')}`,
+    });
+    console.log('product search:', productSearch);
+  });
+
+  it('shipbob API: create products', async function test() {
     const api = await getApi();
 
     const products = [
@@ -72,9 +83,10 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
               return_preferences: {
                 primary_action_id: ReturnAction.Quarantine,
                 backup_action_id: null,
+                // 'Looks like instructions must be null, if you select Quarantine as primary.',
                 instructions: null,
-                return_to_sender_primary_action_id: ReturnAction.Quarantine,
-                return_to_sender_backup_action_id: null,
+                return_to_sender_primary_action_id: ReturnAction.Restock,
+                return_to_sender_backup_action_id: ReturnAction.Quarantine,
               },
               sku: product.barcode,
             },
@@ -255,11 +267,29 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.deepEqual([], results.data, 'current list mismatch');
   });
 
+  it('shipbob API: unregister webhooks', async function test() {
+    const api = await getApi();
+    const results = await api.getWebhooks();
+    assert.ok(results.success, 'should succeed');
+    for (const webhook of results.data) {
+      const unregisterResult = await api.unregisterWebhookSubscription(webhook.id);
+      console.log('unregister result:', unregisterResult.success);
+    }
+  });
+
+  it.only('shipbob API: get shipping methods', async function test() {
+    const api = await getApi();
+    const results = await api.getShippingMethods();
+    assert.ok(results.success, 'should succeed');
+    assert.strictEqual(200, results.statusCode, 'expected a created status code');
+    assert.deepEqual([], results.data, 'current list mismatch');
+  });
+
   it.skip('shipbob API: register webhook', async function test() {
     const api = await getApi();
     // order_shipped, WebhookTopic.ShipmentCancelled
     for (const topic of [WebhookTopic.ShipmentDelivered, WebhookTopic.ShipmentException, WebhookTopic.ShipmentOnHold]) {
-      const results = await api.createWebhookSubscription({
+      const results = await api.registerWebhookSubscription({
         topic,
         subscription_url: 'https://<redacted>',
       });
@@ -268,6 +298,20 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       console.log('created webhook for topic:', results.data.topic);
     }
   });
+
+  it.only('shipbob API: unregister webhooks', async function test() {
+    const api = await getApi();
+
+    for (const topic of [WebhookTopic.OrderShipped, WebhookTopic.ShipmentCancelled, WebhookTopic.ShipmentDelivered, WebhookTopic.ShipmentException, WebhookTopic.ShipmentOnHold]) {
+      const results = await api.registerWebhookSubscription({
+        topic,
+        subscription_url: 'https://<redacted>',
+      });
+      assert.ok(results.success, 'should succeed');
+      assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
+      console.log('created webhook for topic:', results.data.topic);
+    }
+  })
 
   it('shipbob API: get fulfillment centers', async function test() {
     const api = await getApi();

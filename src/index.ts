@@ -55,11 +55,15 @@ export type DataResponse<T> = (
 // ShipBob is potentially extending 2.0 publicly
 // see /docs/Product Catalog API Examples.pdf
 
+// Products
 const PATH_1_0_CHANNEL = '/1.0/channel';
 const PATH_1_0_PRODUCT = '/1.0/product';
 const PATH_2_0_PRODUCT = '/2.0/product';
 const PATH_EXPERIMENTAL_PRODUCT = '/experimental/product';
+
+// Orders
 const PATH_1_0_ORDER = '/1.0/order';
+const PATH_1_0_SHIPPINGMETHOD = '/1.0/shippingmethod';
 /**
  * Warehouse Receiving Order
  */
@@ -608,6 +612,40 @@ export type PlaceOrderRequest = {
   type: OrderType;
 };
 
+export type ShippingMethod = {
+  /**
+   * Unique id for shipping method
+   */
+  id: number
+  /**
+   * Indicates if the shipping method is active
+   */
+  active: boolean
+  /**
+   * Indicates the shipping method is a ShipBob default shipping method.
+   */
+  default: boolean
+  /**
+   * Name of the ship method as selected by the merchant and saved in ShipBob’s database (i.e. “ground”).
+   * 
+   * Corresponds to the shipping_method field in the Orders API.
+   */
+  name: string
+  /**
+   * ShipBob.Orders.Presentation.ViewModels.ServiceLevelDetailViewModel)
+   */
+  service_level: {
+    /**
+     * Unique id for the service level
+     */
+      id: number
+      /**
+       * The name or title of the service level
+       */
+      name: string
+  }
+}
+
 export type Webhook = {
   id: number;
   /**
@@ -1056,6 +1094,10 @@ export type VariantRequestProduct2_0 = {
   return_preferences?: {
     primary_action_id: Nullable<ReturnAction>;
     backup_action_id: null;
+    /**
+     * Cannot be set when "primary_action_id" has certain values (ie: Quarantine)
+     * error: variants.return_preferences.instructions cannot be set for the selected primary action
+     */
     instructions: Nullable<string>;
     return_to_sender_primary_action_id: Nullable<ReturnAction>;
     return_to_sender_backup_action_id: Nullable<ReturnAction>;
@@ -1126,6 +1168,105 @@ export type ExperimentalPagedResult<T> = {
   items: T[];
   prev: Nullable<string>;
   last: string;
+};
+
+export type GetInventory1_0Result = {
+  id: number;
+  name: string;
+  is_digital: boolean;
+  is_case_pick: boolean;
+  is_lot: boolean;
+  dimensions: {
+    weight: number;
+    length: number;
+    width: number;
+    depth: number;
+  };
+  /**
+   * Total fulfillable quantity of this inventory item
+   */
+  total_fulfillable_quantity: number;
+  /**
+   * Total onhand quantity of this inventory item
+   */
+  total_onhand_quantity: number;
+  /**
+   * Total committed quantity of this inventory item
+   */
+  total_committed_quantity: number;
+  /**
+   * Total quantity that can be sold without overselling the inventory item. This is calculated by subtracting the total exception quantity from the fulfillable quantity.
+   */
+  total_sellable_quantity: number;
+  /**
+   * Total quantity in unreceived receiving orders for this inventory item
+   */
+  total_awaiting_quantity: number;
+  /**
+   * The total quantity of all items that are contained within orders that are in exception/out of stock status. Out of stock orders have not been processed and therefore do not have lot or fulfillment centers assigned.
+   */
+  total_exception_quantity: number;
+  /**
+   * The total quantity of all items that are in the process of internal transit between ShipBob fulfillment centers. These items are not pickable or fulfillable until they have been received and moved to the "On Hand" quantity of the destination FC. Internal transit quantities for each FC represent the incoming transfer stock for that specific location.
+   */
+  total_internal_transfer_quantity: number;
+  /**
+   * The amount of the item you need to send to ShipBob to fulfill all exception orders containing the item. This is the exception_quantity less the fulfillable_quantity of the item.
+   */
+  total_backordered_quantity: number;
+  /**
+   * Whether the inventory is active or not
+   */
+  is_active: boolean;
+  /**
+   * Fulfillable quantity of this inventory item broken down by fulfillment center location
+   */
+  fulfillable_quantity_by_fulfillment_center: {
+    id: number;
+    name: string;
+    fulfillable_quantity: number;
+    onhand_quantity: number;
+    committed_quantity: number;
+    awaiting_quantity: number;
+    internal_transfer_quantity: number;
+  }[];
+  /**
+   * Fulfillable quantity of this inventory item broken down by lot
+   */
+  fulfillable_quantity_by_lot: {
+    lot_number: string;
+    /**
+     * ie: "2019-08-24T14:15:22Z"
+     */
+    expiration_date: string;
+    fulfillable_quantity: number;
+    onhand_quantity: number;
+    committed_quantity: number;
+    awaiting_quantity: number;
+    internal_transfer_quantity: number;
+    fulfillable_quantity_by_fulfillment_center: {
+      id: number;
+      name: string;
+      fulfillable_quantity: number;
+      onhand_quantity: number;
+      committed_quantity: number;
+      awaiting_quantity: number;
+      internal_transfer_quantity: number;
+    }[];
+  }[];
+  /**
+   * ie: "None" "Fragile" "Foldable" "Stackable" "Book" "CustomPackaging" "CustomDunnage" "MarketingInsert" or "Poster"
+   */
+  packaging_attribute:
+    | 'None'
+    | 'Fragile'
+    | 'Foldable'
+    | 'Stackable'
+    | 'Book'
+    | 'CustomPackaging'
+    | 'CustomDunnage'
+    | 'MarketingInsert'
+    | 'Poster';
 };
 
 /**
@@ -1243,7 +1384,15 @@ export const createShipBobApi = async (
         const val = typeof query[param] === 'string' ? query[param] : query[param].toString();
         url.searchParams.set(param, val);
       }
+
+      console.log(` > before: ${url.href}`);
+      // The API is using unescaped reserved characters.  Since we aren't passing "," or ":" ever then this is safe (for one person).
+      // If a caller is searching for ie: products with those characters in the name then this may fail.
+      // ie: https://.../experimental/product?sku=any%3A123%2C456 => https://.../experimental/product?sku=any:123,456
+      // NOTE: both replacements are needed for above to work
+      url.search = url.search.replace(/%2C/g, ',').replace(/%3A/g, ':'); //;
     }
+
     console.log(` > GET: ${url.href}`);
 
     const opts = {
@@ -1271,7 +1420,7 @@ export const createShipBobApi = async (
     credentials: Credentials,
     data: object | undefined,
     path: string,
-    method: 'POST' | 'PATCH' = 'POST'
+    method: 'POST' | 'PATCH' | 'DELETE' = 'POST'
   ): Promise<DataResponse<T>> => {
     if (credentials.channelId === undefined) {
       throw new Error('Channel ID missing');
@@ -1299,7 +1448,7 @@ export const createShipBobApi = async (
   const channelsResponse = await httpGet<ChannelsResponse>(credentials, PATH_1_0_CHANNEL);
 
   if (!channelsResponse.success) {
-    throw new Error(`${channelsResponse.statusCode} '${channelsResponse.data as string}'`);
+    throw new Error(` > GET /1.0/channel -> ${channelsResponse.statusCode} '${channelsResponse.data as string}'`);
   }
   const smaChannel = channelsResponse.data.find((c) => c.application_name === channelApplicationName);
   if (smaChannel === undefined) {
@@ -1433,14 +1582,24 @@ export const createShipBobApi = async (
       console.log('place order:', placeOrderResponse);
       return placeOrderResponse;
     },
-    getWebhooks: async () => {
-      const webhooks = await httpGet<Webhook[][]>(credentials, PATH_1_0_WEBHOOK);
-      console.log('webhooks:', webhooks);
+    getShippingMethods: async () => {
+      const webhooks = await httpGet<ShippingMethod[]>(credentials, PATH_1_0_SHIPPINGMETHOD);
       return webhooks;
     },
-    createWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>) => {
-      const createdWebhook = await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK);
-      return createdWebhook;
+    getWebhooks: async () => {
+      const webhooks = await httpGet<Webhook[]>(credentials, PATH_1_0_WEBHOOK);
+      return webhooks;
+    },
+    registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>) => {
+      const registeredWebhook = await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK);
+      return registeredWebhook;
+    },
+    /**
+     * This can be really slow.  Can generate 500 response with data: "The wait operation timed out."
+     */
+    unregisterWebhookSubscription: async (id: number) => {
+      const unregisteredWebhook = await httpData<Webhook>(credentials, undefined, `${PATH_1_0_WEBHOOK}/${id}`, 'DELETE');
+      return unregisteredWebhook;
     },
     getFulfillmentCenters: async () => {
       const fulfillmentCenters = await httpGet<FulfillmentCenter[]>(credentials, PATH_1_0_FULFILLMENT_CENTER);
@@ -1540,7 +1699,7 @@ export const createShipBobApi = async (
         LocationType: string;
       }>
     ) => {
-      const getInventoryResult = await httpGet<GetProduct1_0Result[]>(credentials, PATH_1_0_INVENTORY, query);
+      const getInventoryResult = await httpGet<GetInventory1_0Result[]>(credentials, PATH_1_0_INVENTORY, query);
       return getInventoryResult;
     },
     /**

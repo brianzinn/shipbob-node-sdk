@@ -50,6 +50,13 @@ SHIPBOB_API_TOKEN=<redacted>
 - :x: Get one Shipment's status timeline by Order Id and Shipment Id
 - :question: Get all Shipments for Order
 - :x: Get logs for one Shipment by Order Id and Shipment Id
+- :x: Get one Shipment by Shipment Id
+- :x: Update a Shipment
+- :x: Cancel one Shipment by Shipment Id
+- :x: Cancel multiple Shipments by Shipment Id
+- :x: Get one Shipment's status timeline by Shipment Id
+- :x: Get logs for one Shipment by Shipment Id
+- :heavy_check_mark: Get shipping methods: api.getShippingMethods()
 
 ## Shipments
 - :question: Get one Shipment by Shipment Id (webhooks are enough?)
@@ -122,8 +129,8 @@ I'll try to share a recipe for using this for marking completed WROs.
 
 ## Webhooks
 - :heavy_check_mark: Get Webhooks: api.getWebhooks()
-- :heavy_check_mark: Create a new webhook subscription: api.createWebhookSubscription(...)
-- [ ] Delete an existing webhook subscription
+- :heavy_check_mark: Create a new webhook subscription: api.registerWebhookSubscription(...)
+- :heavy_check_mark: Delete an existing webhook subscription: api.unregisterWebhookSubscription(...)
 
 ## Locations
 - :x: Get locations
