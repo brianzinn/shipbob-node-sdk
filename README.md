@@ -33,7 +33,7 @@ SHIPBOB_API_TOKEN=<redacted>
 
 :heavy_check_mark: = implemented
 
-[ ] = intend to add
+- [ ] = intend to add
 
 :question: = might add support soon - under investigation
 
@@ -104,10 +104,10 @@ Kindly note as it's experimental subject to change/removal :skull:
 - :question: Get One Return's status history
 
 ## Receiving
-- :x: Get Fulfillment Centers
+- :heavy_check_mark: Get Fulfillment Centers: api.getFulfillmentCenters()
 - :heavy_check_mark: Get Warehouse Receiving Order
 - :heavy_check_mark: Get Warehouse Receiving Order Boxes
-- [ ] Get Multiple Warehouse Receiving Orders (we probably need this to filter by statuses)
+- [ ] Get Multiple Warehouse Receiving Orders (we will need this to filter by statuses - will include this in a recipe that uses SetExternalSync)
 - :heavy_check_mark: Create Warehouse Receiving Order: api.createWarehouseReceivingOrder(...)
 - :x: Get Warehouse Receiving Order Box Labels
 - :x: Cancel Warehouse Receiving Order (could be done manually, if needed?)

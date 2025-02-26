@@ -69,7 +69,7 @@ const PATH_1_0_SHIPPINGMETHOD = '/1.0/shippingmethod';
  */
 const PATH_2_0_RECEIVING = '/2.0/receiving';
 /**
- * Note part of API docs
+ * Not part of API docs
  */
 const PATH_2_0_RECEIVING_EXTENDED = '/2.0/receiving-extended';
 /**
@@ -346,16 +346,18 @@ export type GetProduct2_0Response = {
   variants: GetProduct2_0Variant[];
 };
 
+export type GetProductExperimentalVariant = Omit<GetProduct2_0Variant, 'barcode'> & {
+  barcodes: {
+    value: string;
+    sticker_url: Nullable<string>;
+  }[];
+};
+
 /**
  * Just the barcode -> barcodes on the variant seems like the only difference so far.
  */
 export type GetProductExperimentalResponse = Omit<GetProduct2_0Response, 'variants'> & {
-  variants: (Omit<GetProduct2_0Variant, 'barcode'> & {
-    barcodes: {
-      value: string;
-      sticker_url: Nullable<string>;
-    }[];
-  })[];
+  variants: GetProductExperimentalVariant[];
 };
 
 export type OrderType = 'DTC' | 'DropShip' | 'B2B' | 'Transportation';
@@ -616,21 +618,21 @@ export type ShippingMethod = {
   /**
    * Unique id for shipping method
    */
-  id: number
+  id: number;
   /**
    * Indicates if the shipping method is active
    */
-  active: boolean
+  active: boolean;
   /**
    * Indicates the shipping method is a ShipBob default shipping method.
    */
-  default: boolean
+  default: boolean;
   /**
    * Name of the ship method as selected by the merchant and saved in ShipBob’s database (i.e. “ground”).
-   * 
+   *
    * Corresponds to the shipping_method field in the Orders API.
    */
-  name: string
+  name: string;
   /**
    * ShipBob.Orders.Presentation.ViewModels.ServiceLevelDetailViewModel)
    */
@@ -638,13 +640,13 @@ export type ShippingMethod = {
     /**
      * Unique id for the service level
      */
-      id: number
-      /**
-       * The name or title of the service level
-       */
-      name: string
-  }
-}
+    id: number;
+    /**
+     * The name or title of the service level
+     */
+    name: string;
+  };
+};
 
 export type Webhook = {
   id: number;
@@ -1163,11 +1165,17 @@ export type GetProductQueryStrings = {
 };
 
 export type ExperimentalPagedResult<T> = {
-  first: string;
+  /**
+   * Will be null when there are no items
+   */
+  first: Nullable<string>;
   next: Nullable<string>;
   items: T[];
   prev: Nullable<string>;
-  last: string;
+  /**
+   * Will be null when there are no items.
+   */
+  last: Nullable<string>;
 };
 
 export type GetInventory1_0Result = {
@@ -1269,6 +1277,13 @@ export type GetInventory1_0Result = {
     | 'Poster';
 };
 
+export type CreateOptions = {
+  /**
+   * console.log HTTP traffic (http verb + endpoint)
+   */
+  logTraffic: boolean;
+}
+
 /**
  * Create API with PAT (personal access token) - defaults to sandbox endpoints and "SMA" channel.
  *
@@ -1279,12 +1294,16 @@ export type GetInventory1_0Result = {
  * @param personalAccessToken passing *undefined* or empty string has a guar clause that will throw
  * @param apiBaseUrl
  * @param channelApplicationName
+ * @param options
  * @returns
  */
 export const createShipBobApi = async (
   personalAccessToken: string | undefined,
   apiBaseUrl = 'sandbox-api.shipbob.com',
-  channelApplicationName = 'SMA' /*, authBaseUrl = 'authstage.shipbob.com'*/
+  channelApplicationName = 'SMA',
+  options: CreateOptions = {
+    logTraffic: false,
+  }
 ) => {
   if (personalAccessToken === undefined || personalAccessToken === '') {
     throw new Error('Cannot create a ShipBob API without a PAT');
@@ -1385,7 +1404,9 @@ export const createShipBobApi = async (
         url.searchParams.set(param, val);
       }
 
-      console.log(` > before: ${url.href}`);
+      if (options.logTraffic) {
+        console.log(` > before: ${url.href}`);
+      }
       // The API is using unescaped reserved characters.  Since we aren't passing "," or ":" ever then this is safe (for one person).
       // If a caller is searching for ie: products with those characters in the name then this may fail.
       // ie: https://.../experimental/product?sku=any%3A123%2C456 => https://.../experimental/product?sku=any:123,456
@@ -1393,7 +1414,9 @@ export const createShipBobApi = async (
       url.search = url.search.replace(/%2C/g, ',').replace(/%3A/g, ':'); //;
     }
 
-    console.log(` > GET: ${url.href}`);
+    if (options.logTraffic) {
+      console.log(` > GET: ${url.href}`);
+    }
 
     const opts = {
       method: 'GET',
@@ -1427,7 +1450,11 @@ export const createShipBobApi = async (
     }
 
     const url = new URL(`https://${apiBaseUrl}${path}`);
-    console.log(` > ${method} ${url.href}`);
+
+    if (options.logTraffic) {
+      console.log(` > ${method} ${url.href}`);
+    }
+
     const opts = {
       method,
       headers: {
@@ -1590,15 +1617,25 @@ export const createShipBobApi = async (
       const webhooks = await httpGet<Webhook[]>(credentials, PATH_1_0_WEBHOOK);
       return webhooks;
     },
+    /**
+     * NOTE: can consider option to add without providing channel id (would need matching unregister)
+     */
     registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>) => {
       const registeredWebhook = await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK);
       return registeredWebhook;
     },
     /**
-     * This can be really slow.  Can generate 500 response with data: "The wait operation timed out."
+     * Can generate 500 response with data: "The wait operation timed out."  If so, check your channel id matches.
+     *
+     * NOTE: can consider option to add without providing channel id (would need matching register)
      */
     unregisterWebhookSubscription: async (id: number) => {
-      const unregisteredWebhook = await httpData<Webhook>(credentials, undefined, `${PATH_1_0_WEBHOOK}/${id}`, 'DELETE');
+      const unregisteredWebhook = await httpData<Webhook>(
+        credentials,
+        undefined,
+        `${PATH_1_0_WEBHOOK}/${id}`,
+        'DELETE'
+      );
       return unregisteredWebhook;
     },
     getFulfillmentCenters: async () => {

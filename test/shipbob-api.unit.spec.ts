@@ -302,7 +302,13 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   it.only('shipbob API: unregister webhooks', async function test() {
     const api = await getApi();
 
-    for (const topic of [WebhookTopic.OrderShipped, WebhookTopic.ShipmentCancelled, WebhookTopic.ShipmentDelivered, WebhookTopic.ShipmentException, WebhookTopic.ShipmentOnHold]) {
+    for (const topic of [
+      WebhookTopic.OrderShipped,
+      WebhookTopic.ShipmentCancelled,
+      WebhookTopic.ShipmentDelivered,
+      WebhookTopic.ShipmentException,
+      WebhookTopic.ShipmentOnHold,
+    ]) {
       const results = await api.registerWebhookSubscription({
         topic,
         subscription_url: 'https://<redacted>',
@@ -311,7 +317,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
       console.log('created webhook for topic:', results.data.topic);
     }
-  })
+  });
 
   it('shipbob API: get fulfillment centers', async function test() {
     const api = await getApi();
