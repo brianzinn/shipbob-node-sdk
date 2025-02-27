@@ -277,7 +277,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     }
   });
 
-  it.only('shipbob API: get shipping methods', async function test() {
+  it('shipbob API: get shipping methods', async function test() {
     const api = await getApi();
     const results = await api.getShippingMethods();
     assert.ok(results.success, 'should succeed');
@@ -285,23 +285,11 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.deepEqual([], results.data, 'current list mismatch');
   });
 
-  it.skip('shipbob API: register webhook', async function test() {
-    const api = await getApi();
-    // order_shipped, WebhookTopic.ShipmentCancelled
-    for (const topic of [WebhookTopic.ShipmentDelivered, WebhookTopic.ShipmentException, WebhookTopic.ShipmentOnHold]) {
-      const results = await api.registerWebhookSubscription({
-        topic,
-        subscription_url: 'https://<redacted>',
-      });
-      assert.ok(results.success, 'should succeed');
-      assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
-      console.log('created webhook for topic:', results.data.topic);
-    }
-  });
-
-  it.only('shipbob API: unregister webhooks', async function test() {
+  it.skip('shipbob API: register webhook(s)', async function test() {
     const api = await getApi();
 
+    // choose the topics you would like to register for.
+    const registerWithChannelId = false; // api defaults to `true`.
     for (const topic of [
       WebhookTopic.OrderShipped,
       WebhookTopic.ShipmentCancelled,
@@ -309,10 +297,38 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       WebhookTopic.ShipmentException,
       WebhookTopic.ShipmentOnHold,
     ]) {
-      const results = await api.registerWebhookSubscription({
-        topic,
-        subscription_url: 'https://<redacted>',
-      });
+      const results = await api.registerWebhookSubscription(
+        {
+          topic,
+          subscription_url: 'https://<redacted>',
+        },
+        registerWithChannelId
+      );
+      assert.ok(results.success, 'should succeed');
+      assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
+      console.log('created webhook for topic:', results.data.topic);
+    }
+  });
+
+  it('shipbob API: unregister webhook(s)', async function test() {
+    const api = await getApi();
+
+    // choose the topics you want to unregister and match the channel (if you used a non-standard (not SMA) application_name also to match that.)
+    const registerWithChannelId = false; // api defaults to `true`.
+    for (const topic of [
+      WebhookTopic.OrderShipped,
+      WebhookTopic.ShipmentCancelled,
+      WebhookTopic.ShipmentDelivered,
+      WebhookTopic.ShipmentException,
+      WebhookTopic.ShipmentOnHold,
+    ]) {
+      const results = await api.registerWebhookSubscription(
+        {
+          topic,
+          subscription_url: 'https://<redacted>',
+        },
+        registerWithChannelId
+      );
       assert.ok(results.success, 'should succeed');
       assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
       console.log('created webhook for topic:', results.data.topic);

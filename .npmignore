@@ -2,6 +2,7 @@
 node_modules
 src
 test
+docs
 generated
 .gitignore
 .mocharc.json

@@ -1282,7 +1282,7 @@ export type CreateOptions = {
    * console.log HTTP traffic (http verb + endpoint)
    */
   logTraffic: boolean;
-}
+};
 
 /**
  * Create API with PAT (personal access token) - defaults to sandbox endpoints and "SMA" channel.
@@ -1388,13 +1388,28 @@ export const createShipBobApi = async (
     };
   };
 
+  const getHeaders = (credentials: Credentials, sendChannelId: boolean): HeadersInit => {
+    const headers: HeadersInit = {
+      Authorization: `Bearer ${credentials.token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': 'shipbob-node-sdk',
+    };
+
+    if (credentials.channelId && sendChannelId !== false) {
+      headers['shipbob_channel_id'] = credentials.channelId.toString();
+    }
+    return headers;
+  };
+
   /**
    * Will GET using our PAT and SAM channel
    */
   const httpGet = async <T>(
     credentials: Credentials,
     path: string,
-    query?: Record<string, string | number | boolean | number[]>
+    query?: Record<string, string | number | boolean | number[]>,
+    sendChannelId = true
   ): Promise<DataResponse<T>> => {
     const url = new URL(`https://${apiBaseUrl}${path}`);
     if (query) {
@@ -1420,17 +1435,8 @@ export const createShipBobApi = async (
 
     const opts = {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${credentials.token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'User-Agent': 'shipbob-node-sdk',
-      } as Record<string, string>,
-      // signal: AbortSignal.timeout(60 * 1000) Node 20 only
+      headers: getHeaders(credentials, sendChannelId),
     };
-    if (credentials.channelId) {
-      opts.headers.shipbob_channel_id = credentials.channelId.toString();
-    }
 
     const res = await fetch(url.href, opts);
     return getResult(res);
@@ -1443,7 +1449,8 @@ export const createShipBobApi = async (
     credentials: Credentials,
     data: object | undefined,
     path: string,
-    method: 'POST' | 'PATCH' | 'DELETE' = 'POST'
+    method: 'POST' | 'PATCH' | 'DELETE' = 'POST',
+    sendChannelId = true
   ): Promise<DataResponse<T>> => {
     if (credentials.channelId === undefined) {
       throw new Error('Channel ID missing');
@@ -1457,15 +1464,8 @@ export const createShipBobApi = async (
 
     const opts = {
       method,
-      headers: {
-        Authorization: `Bearer ${credentials.token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'User-Agent': 'shipbob-node-sdk',
-        shipbob_channel_id: credentials.channelId.toString(),
-      } as Record<string, string>,
+      headers: getHeaders(credentials, sendChannelId),
       body: data !== undefined ? JSON.stringify(data) : undefined,
-      // signal: AbortSignal.timeout(60 * 1000) Node 20 only
     };
 
     const res = await fetch(url.href, opts);
@@ -1618,23 +1618,35 @@ export const createShipBobApi = async (
       return webhooks;
     },
     /**
-     * NOTE: can consider option to add without providing channel id (would need matching unregister)
+     *
+     * @param webhook
+     * @param sendChannelId defaults `true`.  Not providing channel id will (I think) subscribe to all channels.  You need to match when unsubscribing.
+     * @returns
      */
-    registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>) => {
-      const registeredWebhook = await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK);
+    registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>, sendChannelId = true) => {
+      const registeredWebhook = await httpData<Webhook>(
+        credentials,
+        webhook,
+        PATH_1_0_WEBHOOK,
+        undefined,
+        sendChannelId
+      );
       return registeredWebhook;
     },
     /**
-     * Can generate 500 response with data: "The wait operation timed out."  If so, check your channel id matches.
+     * Can generate 500 response with data: "The wait operation timed out."  If so, check your channel id (or lack thereof) matches the subscription registration.
      *
-     * NOTE: can consider option to add without providing channel id (would need matching register)
+     * @param id channelId from getWebhooks()
+     * @param sendChannelId defaults `true`.  You need to match this with when you subscribed.  There's no way to see this anywhere.
+     * @returns
      */
-    unregisterWebhookSubscription: async (id: number) => {
+    unregisterWebhookSubscription: async (id: number, sendChannelId = true) => {
       const unregisteredWebhook = await httpData<Webhook>(
         credentials,
         undefined,
         `${PATH_1_0_WEBHOOK}/${id}`,
-        'DELETE'
+        'DELETE',
+        sendChannelId
       );
       return unregisteredWebhook;
     },
