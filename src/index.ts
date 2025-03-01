@@ -446,23 +446,69 @@ export type CancelOrderResponse = {
   }[];
 };
 
-export type PlaceOrderResponse = {
+/**
+ * ShipBob.Orders.StatusResolver.OrderStatus
+ */
+export type OrderStatusType =
+  | 'Processing'
+  | 'Exception'
+  | 'PartiallyFulfilled'
+  | 'Fulfilled'
+  | 'Cancelled'
+  | 'ImportReview';
+/**
+ * Shipbob.CoreModels.OrderStateResolver.OrderStatusEnum
+ */
+export type ShipmentStatusType =
+  | 'None'
+  | 'Processing'
+  | 'Completed'
+  | 'Exception'
+  | 'OnHold'
+  | 'Cancelled'
+  | 'CleanSweeped'
+  | 'LabeledCreated'
+  | 'ImportReview';
+
+export type Order = {
+  /**
+   * Unique id of the order
+   */
   id: number;
   /**
+   * Date this order was created
+   *
    * ISO date.  ie: "2019-08-24T14:15:22Z"
    */
   created_date: string;
   /**
+   * Date this order was purchase by the end user
+   *
    * ISO date.  ie: "2019-08-24T14:15:22Z"
    */
-  purchase_date: string;
+  purchase_date: Nullable<string>;
+  /**
+   * Client-defined external unique id of the order
+   */
   reference_id: string;
+  /**
+   * User friendly orderId or store order number that will be shown on the Orders Page. If not provided, referenceId will be used
+   */
   order_number: string;
   /**
-   * probably always "Processing" - we should be able to get order status updates via webhook
+   * ie "Processing" when created. We should be able to get order status updates via webhook
+   *
+   * ShipBob.Orders.StatusResolver.OrderStatus
+   * "Processing" "Exception" "PartiallyFulfilled" "Fulfilled" "Cancelled" "ImportReview"
    */
-  status: 'Processing';
+  status: OrderStatusType;
+  /**
+   * Shipbob.Orders.Common.OrderType
+   */
   type: OrderType;
+  /**
+   * Created by channel metadata
+   */
   channel: {
     id: number;
     /**
@@ -471,37 +517,131 @@ export type PlaceOrderResponse = {
     name: string;
   };
   /**
+   * Client-defined shipping method
+   *
    * ie: "Free 2-day Shipping"
    */
   shipping_method: string;
+  /**
+   * Information about the recipient of an order
+   */
   recipient: {
     name: string;
     address: Address;
     email: string;
     phone_number: string;
   };
+  /**
+   * List of products included in the order
+   *
+   * ShipBob.Orders.Presentation.ViewModels.ProductInfoViewModel
+   */
   products: {
+    /**
+     * Unique id of the product
+     */
     id: number;
+    /**
+     * Unique reference id of the product
+     */
     reference_id: string;
+    /**
+     * The quantity of this product ordered
+     */
     quantity: number;
-    quantity_unit_of_measure_code: string;
+    /**
+     * Defined standard for measure for an item (each, inner pack, case, pallet). Values: EA, INP, CS and PL
+     */
+    quantity_unit_of_measure_code: Nullable<string>;
+    /**
+     * Stock keeping unit for the product
+     */
     sku: string;
+    /**
+     * Global Trade Item Number - unique and internationally recognized identifier assigned to item by company GS1
+     */
     gtin: string;
+    /**
+     * Universal Product Code - Unique external identifier
+     */
     upc: string;
+    /**
+     * Price for one item
+     */
     unit_price: number;
+    /**
+     * Numeric assignment per item. Used as a reference number for multiple purposes such as split orders, split containers, etc.
+     */
     external_line_id: number;
   }[];
+  /**
+   * Client-defined order tags
+   */
   tags: string[];
+  /**
+   * Shipments affiliated with the order
+   * TODO: redo this as it's a union of 2 types.
+   * - ShipBob.Orders.Presentation.ViewModels.ShipmentViewModel
+   * - ShipBob.Orders.Presentation.ViewModels.InternalShipmentViewModel
+   * probably good idea to use what is generated from the OpenAPI and reference here - the generated has lots of TS errors.
+   */
   shipments: {
+    /**
+     * The datetime of Shipment delivered to customer.
+     */
+    delivery_date: Nullable<string>;
+    /**
+     * Unique id of the shipment
+     */
     id: number;
+    /**
+     * Id of the order this shipment belongs to
+     */
     order_id: number;
+    /**
+     * Client-defined external unique id of the order this shipment belongs to
+     */
     reference_id: string;
+    /**
+     * Information about the recipient of a shipment
+     */
     recipient: {
       name: string;
       address: Address;
       email: string;
       phone_number: string;
     };
+    /**
+     * OrderStateResolver.OrderStatusEnum
+     */
+    status: ShipmentStatusType;
+    /**
+     * Tracking information for a shipment (null on creation)
+     */
+    tracking: Nullable<
+      {
+        /**
+         * Carrier of the shipment
+         */
+        carrier: Nullable<string>;
+        /**
+         * Tracking number of the shipment
+         */
+        tracking_number: Nullable<string>;
+        /**
+         * The carrier's service which was used for this shipment
+         */
+        carrier_service: Nullable<string>;
+        /**
+         * URL to the website where a shipment can be tracked
+         */
+        tracking_url: Nullable<string>;
+        // bol
+        // shipping_date
+        // pro_number
+        // scac
+      }[]
+    >;
   }[];
   gift_message: string;
   shipping_terms: {
@@ -513,6 +653,7 @@ export type PlaceOrderResponse = {
   };
   // unused
   // "retailer_program_data":
+  // statusDetails...
   // unused
   // "financials":
 };
@@ -1164,6 +1305,55 @@ export type GetProductQueryStrings = {
   TaxonomyIds: string;
 };
 
+export type GetOrdersQueryStrings = {
+  Page: number;
+  Limit: number;
+  /**
+   * order ids to filter by, comma separated
+   */
+  Ids: string;
+  /**
+   * Reference ids to filter by, comma separated
+   */
+  ReferenceIds: string;
+  /**
+   * Start date to filter orders inserted later than
+   */
+  StartDate: string;
+  /**
+   * End date to filter orders inserted earlier than
+   */
+  EndDate: string;
+  /**
+   * Order to sort results in
+   */
+  SortOrder: 'Newest' | 'Oldest';
+  /**
+   * Has any portion of this order been assigned a tracking number
+   */
+  HasTracking: boolean;
+  /**
+   * Start date to filter orders updated later than
+   */
+  LastUpdateStartDate: string;
+  /**
+   * End date to filter orders updated later than
+   */
+  LastUpdateEndDate: string;
+  /**
+   * Filter orders that their tracking information was fully uploaded
+   */
+  IsTrackingUploaded: boolean;
+  /**
+   * Start date to filter orders with tracking updates later than the supplied date. Will only return orders that have tracking information
+   */
+  LastTrackingUpdateStartDate: string;
+  /**
+   * End date to filter orders updated later than the supplied date. Will only return orders that have tracking information
+   */
+  LastTrackingUpdateEndDate: string;
+};
+
 export type ExperimentalPagedResult<T> = {
   /**
    * Will be null when there are no items
@@ -1590,8 +1780,15 @@ export const createShipBobApi = async (
       // console.log(' > Created product:',createProductResponse.success ? createProductResponse.data.id : 'failed');
       return createProductResponse;
     },
+    /**
+     * Look in the returned headers to get paging information.
+     */
+    getOrders: async (query: Partial<GetOrdersQueryStrings>) => {
+      const getOrdersResult = await httpGet<Order[]>(credentials, PATH_1_0_ORDER, query);
+      return getOrdersResult;
+    },
     placeOrder: async (order: PlaceOrderRequest) => {
-      const placeOrderResponse = await httpData<PlaceOrderResponse>(credentials, order, PATH_1_0_ORDER);
+      const placeOrderResponse = await httpData<Order>(credentials, order, PATH_1_0_ORDER);
       console.log('place order:', placeOrderResponse);
       return placeOrderResponse;
     },

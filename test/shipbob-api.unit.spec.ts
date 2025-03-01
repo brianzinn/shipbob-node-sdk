@@ -267,22 +267,23 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.deepEqual([], results.data, 'current list mismatch');
   });
 
-  it('shipbob API: unregister webhooks', async function test() {
-    const api = await getApi();
-    const results = await api.getWebhooks();
-    assert.ok(results.success, 'should succeed');
-    for (const webhook of results.data) {
-      const unregisterResult = await api.unregisterWebhookSubscription(webhook.id);
-      console.log('unregister result:', unregisterResult.success);
-    }
-  });
-
   it('shipbob API: get shipping methods', async function test() {
     const api = await getApi();
     const results = await api.getShippingMethods();
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected a created status code');
     assert.deepEqual([], results.data, 'current list mismatch');
+  });
+
+  it.skip('shipbob API: unregister ALL webhooks', async function test() {
+    const api = await getApi();
+    const results = await api.getWebhooks();
+    assert.ok(results.success, 'should succeed');
+    const unregisterWithChannelId = false; // api defaults to `true`.
+    for (const webhook of results.data) {
+      const unregisterResult = await api.unregisterWebhookSubscription(webhook.id, unregisterWithChannelId);
+      console.log('unregister result:', unregisterResult.success);
+    }
   });
 
   it.skip('shipbob API: register webhook(s)', async function test() {
@@ -310,29 +311,14 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     }
   });
 
-  it('shipbob API: unregister webhook(s)', async function test() {
+  it('shipbob API: get orders', async function test() {
     const api = await getApi();
-
-    // choose the topics you want to unregister and match the channel (if you used a non-standard (not SMA) application_name also to match that.)
-    const registerWithChannelId = false; // api defaults to `true`.
-    for (const topic of [
-      WebhookTopic.OrderShipped,
-      WebhookTopic.ShipmentCancelled,
-      WebhookTopic.ShipmentDelivered,
-      WebhookTopic.ShipmentException,
-      WebhookTopic.ShipmentOnHold,
-    ]) {
-      const results = await api.registerWebhookSubscription(
-        {
-          topic,
-          subscription_url: 'https://<redacted>',
-        },
-        registerWithChannelId
-      );
-      assert.ok(results.success, 'should succeed');
-      assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
-      console.log('created webhook for topic:', results.data.topic);
-    }
+    const results = await api.getOrders({
+      ReferenceIds: '123',
+    });
+    assert.ok(results.success, 'should succeed');
+    assert.strictEqual(200, results.statusCode, 'expected an OK status code');
+    assert.deepEqual([], results.data, 'current list mismatch');
   });
 
   it('shipbob API: get fulfillment centers', async function test() {

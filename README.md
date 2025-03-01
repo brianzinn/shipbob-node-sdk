@@ -39,8 +39,8 @@ SHIPBOB_API_TOKEN=<redacted>
 
 ## Orders
 - :x: Estimate Fulfillment Cost For Order
-- :question: Get Order
-- :question: Get Orders
+- :question: Get Order - don't see the point of this endpoint, unless you store their Ids
+- :heavy_check_mark: Get Orders: api.getOrders(...)
 - :heavy_check_mark: Create Order: api.placeOrder(...)
 - :heavy_check_mark: Cancel single Order by Order ID: api.cancelSingleOrderByOrderId()
 - :x: Get Order Store Json
