@@ -41,22 +41,22 @@ export type Credentials = {
 // This should be extended: DataResponse<T, U...> where U... are known types for 400, 422, etc.
 export type DataResponse<T> = (
   | {
-      /**
-       * HTTP status code received was in 200's.
-       */
-      success: true;
-      data: T;
-    }
+    /**
+     * HTTP status code received was in 200's.
+     */
+    success: true;
+    data: T;
+  }
   | {
-      /**
-       * HTTP status code not in 200s (ie: 302 (auth redirect - check location header), 422 (validation), 524 (cloudflare))
-       */
-      success: false;
-      /**
-       * for 422 is Record<keyof T, string[]>?
-       */
-      data: object | string;
-    }
+    /**
+     * HTTP status code not in 200s (ie: 302 (auth redirect - check location header), 422 (validation), 524 (cloudflare))
+     */
+    success: false;
+    /**
+     * for 422 is Record<keyof T, string[]>?
+     */
+    data: object | string;
+  }
 ) & {
   headers: Record<string, string>;
   statusCode: number;
@@ -119,7 +119,7 @@ export type CreateOptions = {
  * @param personalAccessToken passing *undefined* or empty string has a guar clause that will throw
  * @param apiBaseUrl must pass "api.shipbob.com" otherwise sandbox will be used.
  * @param channelApplicationName will default to SMA account, otherwise provide your application_name here
- * @param options
+ * @param options defaults to not logging traffic
  */
 export const createShipBobApi = async (
   personalAccessToken: string | undefined,
@@ -176,9 +176,25 @@ export const createShipBobApi = async (
       retryAfter,
     };
 
+    const hasJsonContentHeader = (res: Response) => {
+      const contentType = res.headers.has(CONTENT_TYPE) ? res.headers.get(CONTENT_TYPE) : null;
+      return (
+        contentType &&
+        (contentType.startsWith('application/json') || contentType.startsWith('application/problem+json'))
+      )
+    }
     if (res.ok) {
+      const isJson = hasJsonContentHeader(res);
+      if (!isJson) {
+        // NOTE: DELETE webhook is a 204 with an empty response (ie: 'content-length' = '0')
+        console.warn(' > content-type not found for JSON - returning text');
+      }
+
+      const data = isJson
+        ? (await res.json()) as T
+        : (await res.text()) as T
       return {
-        data: (await res.json()) as T,
+        data,
         headers,
         statusCode: res.status,
         success: true,
@@ -188,22 +204,13 @@ export const createShipBobApi = async (
 
     // also http status codes 400, 422 tend to be JSON
     // application/json; charset=utf-8
-    const contentType = res.headers.has(CONTENT_TYPE) ? res.headers.get(CONTENT_TYPE) : null;
-    if (
-      contentType &&
-      (contentType.startsWith('application/json') || contentType.startsWith('application/problem+json'))
-    ) {
-      return {
-        data: await res.json(),
-        headers,
-        statusCode: res.status,
-        success: false,
-        rateLimit,
-      };
-    }
+    const isJson = hasJsonContentHeader(res);
+    const data = isJson
+      ? await res.json()
+      : await res.text();
 
     return {
-      data: await res.text(),
+      data,
       headers,
       statusCode: res.status,
       success: false,
@@ -396,6 +403,10 @@ export const createShipBobApi = async (
     getOrders: async (query: Partial<GetOrdersQueryStrings>) => {
       return await httpGet<Order[]>(credentials, PATH_1_0_ORDER, query);
     },
+    /**
+     * NOTE: After you place an order it is not immediately available on the "getOrders" endpoint.
+     * You are best off using the returned result.  ShipBob suggests 5 seconds as permitted delay time.
+     */
     placeOrder: async (order: PlaceOrderRequest) => {
       return await httpData<Order>(credentials, order, PATH_1_0_ORDER);
     },
@@ -410,6 +421,9 @@ export const createShipBobApi = async (
     getShippingMethods: async () => {
       return await httpGet<ShippingMethod[]>(credentials, PATH_1_0_SHIPPINGMETHOD);
     },
+    /**
+     * The responses don't indicate if they were registered with a channel or not.
+     */
     getWebhooks: async () => {
       return await httpGet<Webhook[]>(credentials, PATH_1_0_WEBHOOK);
     },
@@ -436,6 +450,15 @@ export const createShipBobApi = async (
       return await httpGet<FulfillmentCenter[]>(credentials, PATH_1_0_FULFILLMENT_CENTER);
     },
     createWarehouseReceivingOrder: async (request: WarehouseReceivingOrderRequest) => {
+      // due to failures downstream in their WRO processing.  They will need to create multiple WROs that cannot be merged:
+      if (request.purchase_order_number) {
+        if (!/^[A-Za-z0-9 ]+$/.test(request.purchase_order_number)) {
+          const validPurchaseOrderNumber = request.purchase_order_number.replace(/[^A-Za-z0-9 ]/gi, ' ');
+          console.log(` Replacing disallowed PO number: '${request.purchase_order_number}' -> '${validPurchaseOrderNumber}'`)
+          request.purchase_order_number = validPurchaseOrderNumber;
+        }
+      }
+
       return await httpData<WarehouseReceivingOrderResponse>(credentials, request, PATH_2_0_RECEIVING);
     },
     getWarehouseReceivingOrder: async (orderId: number) => {

@@ -1,15 +1,13 @@
 # ShipBob Node SDK
 First of all there are no official SDKs for ShipBob.  I'm just dropping this here, in case it will speed up somebody else getting started using their API.
 
-These is just a starting point for anybody looking to integrate ShipBob into a Node.js application.
+This library uses the built-in node.js fetch, so you'll want a newer node version with undici support.
 
-It uses the built-in node.js fetch.
-
-Not really sure anybody will ever need this as most common platforms probably have integrations.  There are a couple of other community SDKs.  They do not have 2.0 endpoints:
+Not really sure anybody will ever need this as many common platforms probably have integrations.  There are a couple of other community SDKs.  They do not have `/2.0/*` or `/experimental/*` endpoints:
  - [shipbob-sdk-python](https://github.com/community-phone-company/shipbob-sdk-python)
  - [shipbob-go](https://github.com/stryd/shipbob-go) - generated from Open API
 
-NOTE: I did not notice until all this code was written that ShipBob had published an Open API spec :facepunch:.  You may have better luck generating your own client.
+NOTE: I did not notice until all this code was written that ShipBob had published an Open API spec :facepunch:.  You may have better luck generating your own client.  Maybe those generated typings at least belong here.
 ```bash
 $ yarn generate:client
 ```
@@ -105,9 +103,9 @@ Kindly note as it's experimental subject to change/removal :skull:
 
 ## Receiving
 - :heavy_check_mark: Get Fulfillment Centers: api.getFulfillmentCenters()
-- :heavy_check_mark: Get Warehouse Receiving Order
-- :heavy_check_mark: Get Warehouse Receiving Order Boxes
-- [ ] Get Multiple Warehouse Receiving Orders (we will need this to filter by statuses - will include this in a recipe that uses SetExternalSync)
+- :heavy_check_mark: Get Warehouse Receiving Order: api.getWarehouseReceivingOrder(...)
+- :heavy_check_mark: Get Warehouse Receiving Order Boxes: api.getWarehouseReceivingOrderBoxes(...)
+- :x: Get Multiple Warehouse Receiving Orders (using receiving-extended instead)
 - :heavy_check_mark: Create Warehouse Receiving Order: api.createWarehouseReceivingOrder(...)
 - :x: Get Warehouse Receiving Order Box Labels
 - :x: Cancel Warehouse Receiving Order (could be done manually, if needed?)
@@ -119,7 +117,7 @@ Kindly note as it's experimental subject to change/removal :skull:
   - Cancel Warehouse Receiving Order
 
 ## Receiving-Extended (not in API docs)
-- :heavy_check_mark: Get Receiving Extended: api.getReceivingExtended(...)
+- :heavy_check_mark: Get Receiving Extended: api.getReceivingExtended(...) (will include this in a recipe that uses SetExternalSync)
 
 ## Receiving Experimental
 Kindly note as it's experimental subject to change/removal :skull:
@@ -135,4 +133,40 @@ I'll try to share a recipe for using this for marking completed WROs.
 ## Locations
 - :x: Get locations
 
-For making changes locally - use `yarn link` to test out the changes easily.
+# Building locally
+For making changes to this library locally - use `yarn link` to test out the changes easily.  This is useful if you would like to contribute.
+
+# Testing
+You can fake out this library itself, or otherwise mocking the ShipBob API http calls are quite easy to simulate with `nock`.  Here's a way to test creating an order verifying idempotent operation.
+
+```javascript
+// NOTE: nock > 14 is needed to mock underlying fetch calls
+const CHANNELS_RESPONSE: ChannelsResponse = [{
+  id: 1,
+  application_name: 'SMA',
+  name: 'test',
+  scopes: []
+}];
+
+const nockScope = nock('https://sandbox-api.shipbob.com')
+  .defaultReplyHeaders({ 'content-type': 'application/json' })
+  .get('/1.0/channel')
+  .once()
+  .reply(200, JSON.stringify(CHANNELS_RESPONSE))
+  .post('/1.0/order')
+  .once()
+  .reply(422, JSON.stringify({
+    "": [
+      "Cannot insert order with existing ReferenceId"
+    ]
+  }))
+  .get('/1.0/order?ReferenceIds=123')
+  .once()
+  .reply(200, JSON.stringify([{
+    id: 1,
+    order_number: '18743683',
+  }]))
+  ;
+...
+assert.ok(nockScope.isDone(), 'should have completed nock requests');
+```

@@ -867,8 +867,9 @@ export type WarehouseReceivingOrderRequest = {
    */
   expected_arrival_date: string;
   /**
-   * Purchase order number for this receiving order,
+   * Purchase order number for this receiving order
    *
+   * NOTE: If you have characters other than /^[A-Za-z0-9 ]*$/ this will fail downstream for ShipBob.  It will create the WRO ok though.
    * NOTE: Supporting idempotency this must be unique across WROs
    *       Otherwise 422: "Request could not be completed, PO reference already exists and must be a unique value"
    */
