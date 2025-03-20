@@ -457,30 +457,28 @@ export type OrderShipment = {
   /**
    * Tracking information for a shipment (null on creation)
    */
-  tracking: Nullable<
-    {
-      /**
-       * Carrier of the shipment
-       */
-      carrier: Nullable<string>;
-      /**
-       * Tracking number of the shipment
-       */
-      tracking_number: Nullable<string>;
-      /**
-       * The carrier's service which was used for this shipment
-       */
-      carrier_service: Nullable<string>;
-      /**
-       * URL to the website where a shipment can be tracked
-       */
-      tracking_url: Nullable<string>;
-      // bol
-      // shipping_date
-      // pro_number
-      // scac
-    }[]
-  >;
+  tracking: Nullable<{
+    /**
+     * Carrier of the shipment
+     */
+    carrier: Nullable<string>;
+    /**
+     * Tracking number of the shipment
+     */
+    tracking_number: Nullable<string>;
+    /**
+     * The carrier's service which was used for this shipment
+     */
+    carrier_service: Nullable<string>;
+    /**
+     * URL to the website where a shipment can be tracked
+     */
+    tracking_url: Nullable<string>;
+    // bol
+    // shipping_date
+    // pro_number
+    // scac
+  }>;
   // below are from order shipped
   invoice_amount?: number;
   invoice_currency_code?: string;
