@@ -414,7 +414,7 @@ export type OrderShipment = {
    * order_shipped has no actual information on when the label was printed (unlike the UI)
    * so, then to use this as a best guess (not always available)
    */
-  last_update_at: Nullable<string>
+  last_update_at: Nullable<string>;
   /**
    * Id of the order this shipment belongs to
    */

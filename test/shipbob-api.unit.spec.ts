@@ -17,7 +17,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   const getApi = async () => {
     const url = process.env.SHIPBOB_API_URL;
     return await createShipBobApi(process.env.SHIPBOB_API_TOKEN, url, undefined, {
-      logTraffic: true
+      logTraffic: true,
     });
   };
 
@@ -274,7 +274,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     const results = await api.getWebhooks();
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected a created status code');
-    results.data.forEach(wh => console.log(` > ${wh.topic} @ '${wh.subscription_url}'`));
+    results.data.forEach((wh) => console.log(` > ${wh.topic} @ '${wh.subscription_url}'`));
     assert.deepEqual([], results.data, 'current list mismatch');
   });
 
@@ -284,7 +284,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.ok(results.success, 'should succeed');
     const unregisterWithChannelId = false; // api defaults to `true`.
     for (const webhook of results.data) {
-      console.log(` > unregistering '${webhook.topic}' @ ${webhook.subscription_url}`)
+      console.log(` > unregistering '${webhook.topic}' @ ${webhook.subscription_url}`);
       const unregisterResult = await api.unregisterWebhookSubscription(webhook.id, unregisterWithChannelId);
       console.log('unregister result:', unregisterResult.success);
     }

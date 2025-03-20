@@ -41,22 +41,22 @@ export type Credentials = {
 // This should be extended: DataResponse<T, U...> where U... are known types for 400, 422, etc.
 export type DataResponse<T> = (
   | {
-    /**
-     * HTTP status code received was in 200's.
-     */
-    success: true;
-    data: T;
-  }
+      /**
+       * HTTP status code received was in 200's.
+       */
+      success: true;
+      data: T;
+    }
   | {
-    /**
-     * HTTP status code not in 200s (ie: 302 (auth redirect - check location header), 422 (validation), 524 (cloudflare))
-     */
-    success: false;
-    /**
-     * for 422 is Record<keyof T, string[]>?
-     */
-    data: object | string;
-  }
+      /**
+       * HTTP status code not in 200s (ie: 302 (auth redirect - check location header), 422 (validation), 524 (cloudflare))
+       */
+      success: false;
+      /**
+       * for 422 is Record<keyof T, string[]>?
+       */
+      data: object | string;
+    }
 ) & {
   headers: Record<string, string>;
   statusCode: number;
@@ -181,8 +181,8 @@ export const createShipBobApi = async (
       return (
         contentType &&
         (contentType.startsWith('application/json') || contentType.startsWith('application/problem+json'))
-      )
-    }
+      );
+    };
     if (res.ok) {
       const isJson = hasJsonContentHeader(res);
       if (!isJson) {
@@ -190,9 +190,7 @@ export const createShipBobApi = async (
         console.warn(' > content-type not found for JSON - returning text');
       }
 
-      const data = isJson
-        ? (await res.json()) as T
-        : (await res.text()) as T
+      const data = isJson ? ((await res.json()) as T) : ((await res.text()) as T);
       return {
         data,
         headers,
@@ -205,9 +203,7 @@ export const createShipBobApi = async (
     // also http status codes 400, 422 tend to be JSON
     // application/json; charset=utf-8
     const isJson = hasJsonContentHeader(res);
-    const data = isJson
-      ? await res.json()
-      : await res.text();
+    const data = isJson ? await res.json() : await res.text();
 
     return {
       data,
@@ -454,7 +450,9 @@ export const createShipBobApi = async (
       if (request.purchase_order_number) {
         if (!/^[A-Za-z0-9 ]+$/.test(request.purchase_order_number)) {
           const validPurchaseOrderNumber = request.purchase_order_number.replace(/[^A-Za-z0-9 ]/gi, ' ');
-          console.log(` Replacing disallowed PO number: '${request.purchase_order_number}' -> '${validPurchaseOrderNumber}'`)
+          console.log(
+            ` Replacing disallowed PO number: '${request.purchase_order_number}' -> '${validPurchaseOrderNumber}'`
+          );
           request.purchase_order_number = validPurchaseOrderNumber;
         }
       }
