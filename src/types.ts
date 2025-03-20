@@ -411,6 +411,11 @@ export type OrderShipment = {
    */
   id: number;
   /**
+   * order_shipped has no actual information on when the label was printed (unlike the UI)
+   * so, then to use this as a best guess (not always available)
+   */
+  last_update_at: Nullable<string>
+  /**
    * Id of the order this shipment belongs to
    */
   order_id: number;
@@ -1349,6 +1354,7 @@ export type ListInventoryQueryStrings = {
   Page: number;
   /**
    * Amount of inventory items per page to request
+   * ie: [1 .. 250]
    */
   Limit: number;
   IsActive: boolean;

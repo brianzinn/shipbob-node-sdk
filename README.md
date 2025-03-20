@@ -170,3 +170,41 @@ const nockScope = nock('https://sandbox-api.shipbob.com')
 ...
 assert.ok(nockScope.isDone(), 'should have completed nock requests');
 ```
+# Adding more events
+To replace what could be considered "missing" webhooks, such as WRO completed (Receiving has no webhooks!).
+
+You can create a monitor using polling with api.experimentalReceivingSetExternalSync(...).
+
+If you want something more event driven, you can use the emails they send out with an inbound email processor:
+ie:
+```javascript
+for (const event of events) {
+  const { subject } = event.msg;
+  switch (subject) {
+    case 'Your WRO is now complete':
+      // ie: Your WRO 756713 is now complete and all associated inventory is ready to ship! ...
+      //     https://web.shipbob.com/app/Merchant/#/inventory/receiving/756713/summary ...
+      const match = /Your WRO (?<wro>\d+) is now complete/i.exec(
+        event.msg.text
+      );
+      if (
+        match === null ||
+        match.groups === undefined ||
+        !('wro' in match.groups)
+      ) {
+        throw new Error(`cannot find wro in email '${taskStorageId}'`);
+      }
+      const wro = match.groups.wro;
+      console.log(` Got it!  Received WRO# '${wro}'`);
+      break;
+    case 'Your box/pallet is now complete!':
+      console.log(`Ignoring subject: '${subject}'`);
+      break;
+    default:
+      console.log(`Unsupported subject: '${subject}'.`);
+      break;
+  }
+}
+```
+
+You can publish that as an event or push to a queue and it will act as a "webhook".
