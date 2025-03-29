@@ -43,7 +43,7 @@ SHIPBOB_API_TOKEN=<redacted>
 - :heavy_check_mark: Cancel single Order by Order ID: api.cancelSingleOrderByOrderId()
 - :x: Get Order Store Json
 - :x: Save the Store Order Json (The JSON that represent the order on the Third Party Source)
-- :x: Get one Shipment by Order Id and Shipment Id
+- :heavy_check_mark: Get one Shipment by Order Id and Shipment Id: `api.getOneShipmentByOrderIdAndShipmentId(...)`
 - :x: Cancel one Shipment by Order Id and Shipment Id
 - :x: Get one Shipment's status timeline by Order Id and Shipment Id
 - :question: Get all Shipments for Order
@@ -57,37 +57,41 @@ SHIPBOB_API_TOKEN=<redacted>
 - :heavy_check_mark: Get shipping methods: api.getShippingMethods()
 
 ## Shipments
-- :question: Get one Shipment by Shipment Id (webhooks are enough?)
-- :question: Update a Shipment (marked with tracking information uploaded to a third-party system where the order originated)
+Turns out the webhooks aren't reliable, so polling is needed to get shipment information.
+1. `order_shipped` webhook can fire without tracking details
+2. `shipment_delivered` webhook may not be sent. Additionally, exceptions (return to sender) have no webhook.
+
+- :heavy_check_mark: Get one Shipment by Shipment Id: `api.getOneShipment()`
+- :x: Update a Shipment (marked with tracking information uploaded to a third-party system where the order originated)
 - :question: Cancel one Shipment by Shipment Id
 - :x: Cancel multiple Shipments by Shipment Id
 - :x: Get one Shipment's status timeline by Shipment Id
 - :x: Get logs for one Shipment by Shipment Id
-- :question: Get shipping methods (hard-code shipping methods?)
+- :heavy_check_mark: Get shipping methods: `api.getShippingMethods()`
 
 ## Products 1.0
-- :heavy_check_mark: Get multiple products: api.getProducts1_0(...)
-- :heavy_check_mark: Add a single product to the store: api.createProduct1_0(...)
+- :heavy_check_mark: Get multiple products: `api.getProducts1_0(...)`
+- :heavy_check_mark: Add a single product to the store: `api.createProduct1_0(...)`
 - :x: Modify a single product (using 2.0 for additional properties)
 - :x: Add multiple products to the store
 
 ## Products 2.0
 These are not documented on the site yet:
-- :heavy_check_mark: Get multiple products: api.getProducts2_0(...)
-- :heavy_check_mark: Add a single product to the store: api.createProduct2_0(...)
-- :heavy_check_mark: Modify a single product: api.updateProducts2_0(...)
+- :heavy_check_mark: Get multiple products: `api.getProducts2_0(...)`
+- :heavy_check_mark: Add a single product to the store: `api.createProduct2_0(...)`
+- :heavy_check_mark: Modify a single product: `api.updateProducts2_0(...)`
 - :x: Add multiple products to the store
 
 ## Products Experimental
 Kindly note as it's experimental subject to change/removal :skull:
-- :heavy_check_mark: Get multiple products: api.getProductsExperimental(...)
-- :heavy_check_mark: Add a single product to the store: api.createProductExperimental(...)
-- :heavy_check_mark: Modify a single product: api.updateProductsExperimental(...)
+- :heavy_check_mark: Get multiple products: `api.getProductsExperimental(...)`
+- :heavy_check_mark: Add a single product to the store: `api.createProductExperimental(...)`
+- :heavy_check_mark: Modify a single product: `api.updateProductsExperimental(...)`
 - :x: Add multiple products to the store
 
 ## Inventory
 - [ ] Get an inventory item
-- :heavy_check_mark: List inventory items: api.listInventory(...)
+- :heavy_check_mark: List inventory items: `api.listInventory(...)`
 - :x: Get a list of inventory items by product id (we don't know product_id)
 
 ## Channels
@@ -102,11 +106,11 @@ Kindly note as it's experimental subject to change/removal :skull:
 - :question: Get One Return's status history
 
 ## Receiving
-- :heavy_check_mark: Get Fulfillment Centers: api.getFulfillmentCenters()
-- :heavy_check_mark: Get Warehouse Receiving Order: api.getWarehouseReceivingOrder(...)
-- :heavy_check_mark: Get Warehouse Receiving Order Boxes: api.getWarehouseReceivingOrderBoxes(...)
+- :heavy_check_mark: Get Fulfillment Centers: `api.getFulfillmentCenters()`
+- :heavy_check_mark: Get Warehouse Receiving Order: `api.getWarehouseReceivingOrder(...)`
+- :heavy_check_mark: Get Warehouse Receiving Order Boxes: `api.getWarehouseReceivingOrderBoxes(...)`
 - :x: Get Multiple Warehouse Receiving Orders (using receiving-extended instead)
-- :heavy_check_mark: Create Warehouse Receiving Order: api.createWarehouseReceivingOrder(...)
+- :heavy_check_mark: Create Warehouse Receiving Order: `api.createWarehouseReceivingOrder(...)`
 - :x: Get Warehouse Receiving Order Box Labels
 - :x: Cancel Warehouse Receiving Order (could be done manually, if needed?)
 - :x: 5 x DEPRECATED '/1.0/receiving
@@ -117,21 +121,25 @@ Kindly note as it's experimental subject to change/removal :skull:
   - Cancel Warehouse Receiving Order
 
 ## Receiving-Extended (not in API docs)
-- :heavy_check_mark: Get Receiving Extended: api.getReceivingExtended(...) (will include this in a recipe that uses SetExternalSync)
+- :heavy_check_mark: Get Receiving Extended: `api.getReceivingExtended(...)` (will include this in a recipe that uses SetExternalSync)
 
 ## Receiving Experimental
 Kindly note as it's experimental subject to change/removal :skull:
 
 I'll try to share a recipe for using this for marking completed WROs.
-- :heavy_check_mark: Receiving Set External Sync: api.experimentalReceivingSetExternalSync(...)
+- :heavy_check_mark: Receiving Set External Sync: `api.experimentalReceivingSetExternalSync(...)`
 
 ## Webhooks
 - :heavy_check_mark: Get Webhooks: api.getWebhooks()
-- :heavy_check_mark: Create a new webhook subscription: api.registerWebhookSubscription(...)
-- :heavy_check_mark: Delete an existing webhook subscription: api.unregisterWebhookSubscription(...)
+- :heavy_check_mark: Create a new webhook subscription: `api.registerWebhookSubscription(...)`
+- :heavy_check_mark: Delete an existing webhook subscription: `api.unregisterWebhookSubscription(...)`
 
 ## Locations
 - :x: Get locations
+
+## follow URIs
+This is not part of the API, but instead allows you to follow URI's returned in the API (see tests for examples)
+- :heavy_check_mark: Retrive a path from a provided resource ie: header `next-page`: `api.getPath<T>(response.headers['next-page'])`
 
 # Building locally
 For making changes to this library locally - use `yarn link` to test out the changes easily.  This is useful if you would like to contribute.
@@ -208,3 +216,18 @@ for (const event of events) {
 ```
 
 You can publish that as an event or push to a queue and it will act as a "webhook".
+
+# OAuth
+There is no S2S (server-to-server) oAuth.  User intervention is required.  There are only helper methods to help with that.
+- `oAuthGetConnectUrl()` direct an end user to follow the generated URL.  Use 'offline_access' as part of scope to get a refresh token.
+- `oAuthGetAccessToken()` call this with the `code` query string fragment `https://yourname.ngrok.io/#code=...&id_token=...` the redirect_uri (and your client Id and secret from ShipBob App)
+- `oAuthRefreshAccessToken()` call this with the last `refresh_token` you received, otherwise the same as `oAuthGetAccessToken()` without `code`.
+
+The method to get/refresh access token both return `access_token`, so you provide that to `createShipBobApi(...)` with your application name.
+Then you can use the same as a PAT (Personal Access Token).
+
+# Polling Orders for tracking
+1. Poll GET 1.0/order?HasTracking=true&IsTrackingUploaded=false&startDate=03-25-2025
+2. Iterate through each order (and each shipment)
+3. Sync the tracking back to your platform
+4. Mark the order as shipped using this endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1%7BshipmentId%7D/put). Or, you can mark it as shipped using the bulk mark as shipped endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1:bulkUpdateTrackingUpload/post).

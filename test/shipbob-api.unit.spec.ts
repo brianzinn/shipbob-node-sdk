@@ -1,6 +1,17 @@
 import * as dotenv from 'dotenv';
 
-import { createShipBobApi, PackagingMaterial, PackagingRequirement, ReturnAction, WebhookTopic } from '../src';
+import {
+  Channel,
+  createShipBobApi,
+  ExperimentalPagedResult,
+  GetProduct1_0Result,
+  GetProductExperimentalResponse,
+  PackagingMaterial,
+  PackagingRequirement,
+  ReturnAction,
+  WebhookTopic,
+} from '../src';
+import { oAuthGetAccessToken, oAuthGetConnectUrl, oAuthRefreshAccessToken } from '../src/oAuth';
 import assert from 'assert';
 
 /**
@@ -14,25 +25,34 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   // it's async, because it gets the channels and looks for 'SMA' account.
-  const getApi = async () => {
+  const createApiFromPAT = async () => {
     const url = process.env.SHIPBOB_API_URL;
     return await createShipBobApi(process.env.SHIPBOB_API_TOKEN, url, undefined, {
       logTraffic: true,
     });
   };
 
-  it('shipbob API get products (experimental)', async function test() {
-    const api = await getApi();
+  it('shipbob API: get products (experimental)', async function test() {
+    const api = await createApiFromPAT();
     const skuList = ['123', '456'];
-
-    const productSearch = await api.getProductsExperimental({
-      sku: `any:${skuList.join(',')}`,
-    });
+    const productSearch = await api.getProductsExperimental({ sku: `any:${skuList.join(',')}` });
     console.log('product search:', productSearch);
   });
 
-  it('shipbob API: create products', async function test() {
-    const api = await getApi();
+  it('shipbob API: get products (experimental)', async function test() {
+    const api = await createApiFromPAT();
+    const productSearch = await api.getProductsExperimental();
+    console.log('product search:', productSearch);
+
+    assert.ok(productSearch.success);
+    const { next } = productSearch.data;
+    assert.ok(next !== null, 'should have more pages');
+    const result = await api.getPath<ExperimentalPagedResult<GetProductExperimentalResponse>>(`/experimental${next}`);
+    console.log('result', result);
+  });
+
+  it.skip('shipbob API: create products', async function test() {
+    const api = await createApiFromPAT();
 
     const products = [
       {
@@ -120,14 +140,32 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get a product 1.0 by reference Id', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getProducts1_0({ ReferenceIds: '100' });
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(1, results.data, 'should have found exactly 1 product');
   });
 
-  it('shipbob API: get a 2.0 product - ensure it is setup for lot', async function test() {
-    const api = await getApi();
+  it('shipbob API: get all 1.0 products', async function test() {
+    const api = await createApiFromPAT();
+    const results = await api.getProducts1_0();
+    assert.ok(results.success, 'should succeed');
+    assert.ok('next-page' in results.headers);
+    const next = results.headers['next-page'];
+    const nextProducts = await api.getPath<GetProduct1_0Result[]>(next);
+    assert.ok(nextProducts.success);
+    assert.ok(nextProducts.data.length > 0);
+    assert.strictEqual(nextProducts.data[0].id, 836990721, 'this will fail, but shows strong typing from "getPath"');
+  });
+
+  it.only('shipbob API: get a 2.0 products - ensure it is setup for lot', async function test() {
+    const api = await createApiFromPAT();
+    const results = await api.getProducts2_0();
+    assert.ok(results.success, 'should succeed');
+  });
+
+  it.skip('shipbob API: get a 2.0 products - ensure it is setup for lot', async function test() {
+    const api = await createApiFromPAT();
     const results = await api.getProducts2_0({ sku: '100' });
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(1, results.data.length, 'should have found exactly 1 product');
@@ -164,7 +202,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: place an order', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.placeOrder({
       order_number: 'TEST2',
       products: [
@@ -204,7 +242,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: place an order and cancel/ship/deliver afterwards', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.placeOrder({
       shipping_method: 'Standard',
       recipient: {
@@ -262,7 +300,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get shipping methods', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getShippingMethods();
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected a created status code');
@@ -270,7 +308,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get webhooks', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getWebhooks();
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected a created status code');
@@ -279,22 +317,22 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: unregister ALL webhooks', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getWebhooks();
     assert.ok(results.success, 'should succeed');
-    const unregisterWithChannelId = false; // api defaults to `true`.
+    api.sendChannelId = false; // api defaults to `true`.
     for (const webhook of results.data) {
       console.log(` > unregistering '${webhook.topic}' @ ${webhook.subscription_url}`);
-      const unregisterResult = await api.unregisterWebhookSubscription(webhook.id, unregisterWithChannelId);
+      const unregisterResult = await api.unregisterWebhookSubscription(webhook.id);
       console.log('unregister result:', unregisterResult.success);
     }
   });
 
   it.skip('shipbob API: register webhook(s)', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
 
     // choose the topics you would like to register for.
-    const registerWithChannelId = false; // api defaults to `true`.
+    api.sendChannelId = false; // api defaults to `true`.
     for (const topic of [
       WebhookTopic.OrderShipped,
       WebhookTopic.ShipmentCancelled,
@@ -302,13 +340,10 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       WebhookTopic.ShipmentException,
       WebhookTopic.ShipmentOnHold,
     ]) {
-      const results = await api.registerWebhookSubscription(
-        {
-          topic,
-          subscription_url: 'https://<redacted>',
-        },
-        registerWithChannelId
-      );
+      const results = await api.registerWebhookSubscription({
+        topic,
+        subscription_url: 'https://<redacted>',
+      });
       assert.ok(results.success, 'should succeed');
       assert.strictEqual(201, results.statusCode, 'expected a 200 status code that topic was created');
       console.log('created webhook for topic:', results.data.topic);
@@ -316,17 +351,31 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get orders', async function test() {
-    const api = await getApi();
-    const results = await api.getOrders({
-      ReferenceIds: '3659767',
-    });
+    const api = await createApiFromPAT();
+    const results = await api.getOrders(/*{ ReferenceIds: '3659767',}*/);
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected an OK status code');
     assert.deepEqual([], results.data, 'current list mismatch');
   });
 
+  it('shipbob API: get one shipment by orderId and shipmentId', async function test() {
+    const api = await createApiFromPAT();
+    const response = await api.getOneShipmentByOrderIdAndShipmentId(240765630, 247159563);
+    assert.ok(response.success, 'should succeed');
+    assert.strictEqual(response.statusCode, 200, 'expected an OK status code');
+    assert.strictEqual(response.data.status, 'Completed', 'should be marked as "Completed"');
+  });
+
+  it('shipbob API: get one shipment by shipmentId', async function test() {
+    const api = await createApiFromPAT();
+    const response = await api.getOneShipment(247159563);
+    assert.ok(response.success, 'should succeed');
+    assert.strictEqual(response.statusCode, 200, 'expected an OK status code');
+    assert.strictEqual(response.data.status, 'Completed', 'should be marked as "Completed"');
+  });
+
   it('shipbob API: get fulfillment centers', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getFulfillmentCenters();
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected a created status code');
@@ -334,7 +383,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get inventory', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.listInventory({
       Sort: '-onHand',
     });
@@ -343,7 +392,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: place a warehouse receiving order', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.createWarehouseReceivingOrder({
       fulfillment_center: {
         // Moreno Valley (CA) is what staging seems to be using.  8 is ok, too
@@ -372,7 +421,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: simulation - deliver an order (by shipment)', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.simulateShipment({
       shipment_id: 103744163,
       simulation: {
@@ -385,7 +434,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: simulation - ship an order (by shipment)', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.simulateShipment({
       shipment_id: 103759193,
       simulation: {
@@ -398,7 +447,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: getsimulation', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getSimulationStatus('3150fa20-4cbf-4e08-9de3-dac60c5bed41');
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'should have retrieved the simulation');
@@ -406,7 +455,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get completed not synced', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getReceivingExtended({
       Statuses: 'Completed',
       ExternalSync: false,
@@ -416,7 +465,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it.skip('shipbob API: mark WRO as synced', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     // get these Ids from "getReceivingExtended" with ExternalSync: false.
     const results = await api.experimentalReceivingSetExternalSync([443001], true);
     assert.ok(results.success, 'should succeed');
@@ -424,17 +473,205 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
   });
 
   it('shipbob API: get WRO boxes', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     const results = await api.getWarehouseReceivingOrderBoxes(443001);
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(1, results.data.length, 'should have exactly 1 box');
   });
 
   it('shipbob API: get WRO', async function test() {
-    const api = await getApi();
+    const api = await createApiFromPAT();
     // get these Ids from "getReceivingExtended" with ExternalSync: false.
     const results = await api.getWarehouseReceivingOrder(443002);
     assert.ok(results.success, 'should succeed');
     assert.deepEqual({}, results.data, 'this will never match');
+  });
+
+  const OAUTH_REDIRECT_URI = 'https://kits.ngrok.io';
+
+  /**
+   * NOTE: Get the "code" from the redirect URI - you can use it in the next test.
+   */
+  it.skip('shipbob API: oAuth authentication retrieve URL', async function test() {
+    const authUrl = oAuthGetConnectUrl({
+      client_id: process.env.SHIPBOB_CLIENT_ID!,
+      redirect_uri: OAUTH_REDIRECT_URI,
+      scope: [
+        'orders_read',
+        'orders_write',
+        'products_read',
+        'products_write',
+        'fulfillments_read',
+        'inventory_read',
+        'channels_read',
+        'receiving_read',
+        'receiving_write',
+        'returns_read',
+        'returns_write',
+        'webhooks_read',
+        'webhooks_write',
+        'locations_read',
+        'offline_access',
+      ],
+      integration_name: 'KITS app2',
+    });
+    assert.ok(authUrl !== '', 'should have a URL');
+  });
+
+  /**
+   * Copy the `code` from the redirect here:
+   */
+  it.skip('shipbob API: connect OAuth "code" from callback (authorization)', async function test() {
+    const clientId = process.env.SHIPBOB_CLIENT_ID;
+    assert.ok(clientId !== undefined, '"SHIPBOB_CLIENT_ID" env is missing (the one for your ShipBob app)');
+    const clientSecret = process.env.SHIPBOB_CLIENT_SECRET;
+    assert.ok(
+      clientSecret !== undefined,
+      '"SHIPBOB_CLIENT_SECRET" env is missing (only available when you created the app)'
+    );
+    const codeFromRedirect = 'FCEF80C84B4C3CFB10C099B69B7261BC3A227C0E9798DEC9E1DAB4767CEF57C1-1';
+    const getAccessTokenResponse = await oAuthGetAccessToken(
+      OAUTH_REDIRECT_URI,
+      clientId,
+      clientSecret,
+      codeFromRedirect
+    );
+
+    if (getAccessTokenResponse.success !== true) {
+      assert.fail(`Failed to get access token: ${getAccessTokenResponse.text}`);
+    }
+    if ('error' in getAccessTokenResponse.payload) {
+      assert.fail(`Error: ${getAccessTokenResponse.payload.error}`);
+    }
+    console.log('access token:', getAccessTokenResponse.payload.access_token);
+    console.log('store this refresh token:', getAccessTokenResponse.payload.refresh_token);
+  });
+
+  // copy this from your first call to get an access token or otherwise the last request to refresh (with 'offline_access' scope)
+  const REFRESH_TOKEN = '269A4AADFB041993AA785AEB9B2B26DEF9AFD31261B422269A73DFBF07F0C00C-1';
+  // You set this up in ShipBob.  Make sure this is "application_name" and not "name" (or update the predicate)
+  const OAUTH_APPLICATION_NAME = 'your App Name goes here';
+
+  /**
+   * ^^ Update REFRESH_TOKEN after running this
+   */
+  it.skip('shipbob API: connect OAuth to refresh (authorization)', async function test() {
+    const clientId = process.env.SHIPBOB_CLIENT_ID;
+    assert.ok(clientId !== undefined, '"SHIPBOB_CLIENT_ID" env is missing (the one for your ShipBob app)');
+    const clientSecret = process.env.SHIPBOB_CLIENT_SECRET;
+    assert.ok(
+      clientSecret !== undefined,
+      '"SHIPBOB_CLIENT_SECRET" env is missing (only available when you created the app)'
+    );
+    const refreshTokenResponse = await oAuthRefreshAccessToken(
+      OAUTH_REDIRECT_URI,
+      clientId,
+      clientSecret,
+      REFRESH_TOKEN
+    );
+
+    if (refreshTokenResponse.success) {
+      if ('error' in refreshTokenResponse.payload) {
+        console.error(refreshTokenResponse.payload.error);
+        assert.fail('error');
+      }
+
+      console.log('replace REFRESH_TOKEN with:', refreshTokenResponse.payload.refresh_token);
+      const newToken = refreshTokenResponse.payload.access_token;
+      const url = process.env.SHIPBOB_API_URL;
+
+      const logAndFindChannel = (channels: Channel[]) => {
+        console.log(JSON.stringify(channels));
+        const channel = channels.find((c) => c.application_name === OAUTH_APPLICATION_NAME);
+        if (channel !== undefined) {
+          console.log(` > channel found with scopes: {${channel.scopes.join(', ')}}.`);
+        }
+        return channel;
+      };
+
+      const oAuthAPI = await createShipBobApi(newToken, url, logAndFindChannel, {
+        logTraffic: true,
+      });
+      const products = await oAuthAPI.getProducts2_0();
+      assert.ok(products.success);
+      console.log(JSON.stringify(products.headers));
+      console.log(JSON.stringify(products.data));
+      console.log(`found: ${products.data.length} products (with channel)`);
+      oAuthAPI.sendChannelId = false;
+      const productsWithoutChannel = await oAuthAPI.getProducts2_0();
+      assert.ok(productsWithoutChannel.success);
+      console.log(JSON.stringify(productsWithoutChannel.headers));
+      console.log(JSON.stringify(productsWithoutChannel.data));
+      console.log(`found: ${productsWithoutChannel.data.length} products (without channel)`);
+    } else {
+      console.error(refreshTokenResponse.text);
+      assert.fail('boom shaka');
+    }
+  });
+
+  /**
+   * This test verifies that oAuth and PAT do not share a rate limit.
+   *
+   * > GET: https://api.shipbob.com/2.0/product
+   * > Headers: "Authorization:Bearer <redacted>,Content-Type:application/json,Accept:application/json,User-Agent:shipbob-node-sdk,shipbob_channel_id:123"
+   * > oAuth: 99: true 49
+   * > GET: https://api.shipbob.com/2.0/product
+   * > Headers: "Authorization:Bearer <redacted>,Content-Type:application/json,Accept:application/json,User-Agent:shipbob-node-sdk,shipbob_channel_id:456"
+   * > PAT: 99: true 49
+   *
+   * NOTE: ^^ Update REFRESH_TOKEN after running this
+   */
+  it.skip('shipbob API: test OAuth vs. PAT do not share rate limit', async function test() {
+    const clientId = process.env.SHIPBOB_CLIENT_ID;
+    assert.ok(clientId !== undefined, '"SHIPBOB_CLIENT_ID" env is missing (the one for your ShipBob app)');
+    const clientSecret = process.env.SHIPBOB_CLIENT_SECRET;
+    assert.ok(
+      clientSecret !== undefined,
+      '"SHIPBOB_CLIENT_SECRET" env is missing (only available when you created the app)'
+    );
+    const refreshTokenResponse = await oAuthRefreshAccessToken(
+      OAUTH_REDIRECT_URI,
+      clientId,
+      clientSecret,
+      REFRESH_TOKEN
+    );
+
+    if (refreshTokenResponse.success) {
+      if ('error' in refreshTokenResponse.payload) {
+        console.error(refreshTokenResponse.payload.error);
+        assert.fail('error');
+      }
+
+      console.log('replace REFRESH_TOKEN with:', refreshTokenResponse.payload.refresh_token);
+
+      const apiFromPAT = await createApiFromPAT();
+
+      const newToken = refreshTokenResponse.payload.access_token;
+      const url = process.env.SHIPBOB_API_URL;
+
+      const logAndFindChannel = (channels: Channel[]) => {
+        console.log(JSON.stringify(channels));
+        const channel = channels.find((c) => c.application_name === OAUTH_APPLICATION_NAME);
+        if (channel !== undefined) {
+          console.log(` > channel found with scopes: {${channel.scopes.join(', ')}}.`);
+        }
+        return channel;
+      };
+
+      const oAuthAPI = await createShipBobApi(newToken, url, logAndFindChannel, {
+        logTraffic: true,
+      });
+
+      for (let i = 0; i < 100; i++) {
+        const productsPAT = await apiFromPAT.getProducts2_0();
+        console.log(`> oAuth: ${i}:`, productsPAT.success, productsPAT.rateLimit.remainingCalls);
+
+        const productsOAuth = await oAuthAPI.getProducts2_0();
+        console.log(`> PAT: ${i}:`, productsOAuth.success, productsOAuth.rateLimit.remainingCalls);
+      }
+    } else {
+      console.error(refreshTokenResponse.text);
+      assert.fail('boom shaka');
+    }
   });
 });

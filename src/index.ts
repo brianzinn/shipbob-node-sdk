@@ -3,7 +3,8 @@ import { URL } from 'node:url'; // WHATWG
 import {
   AddProductResponse,
   CancelOrderResponse,
-  ChannelsResponse,
+  Channel,
+  CreateOptions,
   ExperimentalPagedResult,
   FulfillmentCenter,
   GetInventory1_0Result,
@@ -15,6 +16,7 @@ import {
   GetProducts1_0QueryString,
   ListInventoryQueryStrings,
   Order,
+  OrderShipment,
   PlaceOrderRequest,
   SetExternalSyncResponse,
   ShippingMethod,
@@ -30,6 +32,7 @@ import {
 } from './types';
 
 export * from './types';
+export * from './oAuth';
 
 export type Nullable<T> = T | null;
 
@@ -84,6 +87,10 @@ const PATH_EXPERIMENTAL_PRODUCT = '/experimental/product';
 // Orders
 const PATH_1_0_ORDER = '/1.0/order';
 const PATH_1_0_SHIPPINGMETHOD = '/1.0/shippingmethod';
+
+// Shipments
+const PATH_1_0_SHIPMENT = '/1.0/shipment';
+
 /**
  * Warehouse Receiving Order
  */
@@ -102,39 +109,44 @@ const PATH_1_0_FULFILLMENT_CENTER = '/1.0/fulfillmentCenter';
 const PATH_1_0_WEBHOOK = '/1.0/webhook';
 const PATH_2_0_SIMULATE = '/2.0/simulate';
 
-export type CreateOptions = {
-  /**
-   * console.log HTTP traffic (http verb + endpoint)
-   */
-  logTraffic: boolean;
-};
+// single-merchant application
+const DEFAULT_CHANNEL_APPLICATION_NAME = 'SMA';
 
 /**
- * Create API with PAT (personal access token) - defaults to sandbox endpoints and "SMA" channel.
- *
- * NOTE: We used token based auth, so did not need to implement the other auth mechanism(s).
+ * Create API with PAT (personal access token) or oAuth (access token).
  *
  * TODO: Consider adding global parameters like timeout (or per method).  Some endpoints are slower than others.
+ * TODO: Consider allowing channel selection to occur based on an available scope. ie: `fulfillments_write` instead of only application name.
  *
- * @param personalAccessToken passing *undefined* or empty string has a guar clause that will throw
+ * @param token Personal Access Token for `connectionType` "PAT".  Otherwise an OAuth token when `connectinoType` is 'OAuth
  * @param apiBaseUrl must pass "api.shipbob.com" otherwise sandbox will be used.
- * @param channelApplicationName will default to SMA account, otherwise provide your application_name here
+ * @param channelPredicateOrApplicationName will default to choosing "SMA" application_name, otherwise provide your own application_name here (ie: for oAuth use the name of your App)
  * @param options defaults to not logging traffic
  */
 export const createShipBobApi = async (
-  personalAccessToken: string | undefined,
+  token: string | undefined,
   apiBaseUrl = 'sandbox-api.shipbob.com',
-  channelApplicationName = 'SMA',
+  channelPredicateOrApplicationName:
+    | string
+    | ((channels: Channel[]) => Channel | undefined) = DEFAULT_CHANNEL_APPLICATION_NAME,
   options: CreateOptions = {
     logTraffic: false,
   }
 ) => {
-  if (personalAccessToken === undefined || personalAccessToken === '') {
+  if (token === undefined || token === '') {
     throw new Error('Cannot create a ShipBob API without a PAT');
   }
 
   const credentials: Credentials = {
-    token: personalAccessToken,
+    token,
+  };
+
+  type ApiConfiguration = {
+    sendChannelId: boolean;
+  };
+
+  const apiConfiguration: ApiConfiguration = {
+    sendChannelId: options.sendChannelId !== false,
   };
 
   const REMAINING_CALLS = 'x-remaining-calls'; // in sliding window
@@ -214,7 +226,7 @@ export const createShipBobApi = async (
     };
   };
 
-  const getHeaders = (credentials: Credentials, sendChannelId: boolean): HeadersInit => {
+  const getHeaders = (credentials: Credentials): HeadersInit => {
     const headers: HeadersInit = {
       Authorization: `Bearer ${credentials.token}`,
       'Content-Type': 'application/json',
@@ -222,9 +234,19 @@ export const createShipBobApi = async (
       'User-Agent': 'shipbob-node-sdk',
     };
 
-    if (credentials.channelId && sendChannelId !== false) {
+    if (credentials.channelId && apiConfiguration.sendChannelId !== false) {
       headers['shipbob_channel_id'] = credentials.channelId.toString();
     }
+
+    if (options.logTraffic === true) {
+      const headersToLog = Object.keys(headers).reduce<string[]>((prev, cur) => {
+        prev.push(cur === 'Authorization' ? `${cur}:Bearer <redacted>` : `${cur}:${headers[cur]}`);
+
+        return prev;
+      }, []);
+      console.log(` > Headers: ${JSON.stringify(headersToLog.join(','))}`);
+    }
+
     return headers;
   };
 
@@ -234,8 +256,7 @@ export const createShipBobApi = async (
   const httpGet = async <T>(
     credentials: Credentials,
     path: string,
-    query?: Record<string, string | number | boolean | number[]>,
-    sendChannelId = true
+    query?: Record<string, string | number | boolean | number[]>
   ): Promise<DataResponse<T>> => {
     const url = new URL(`https://${apiBaseUrl}${path}`);
     if (query) {
@@ -255,14 +276,14 @@ export const createShipBobApi = async (
       url.search = url.search.replace(/%2C/g, ',').replace(/%3A/g, ':'); //;
     }
 
+    const opts = {
+      method: 'GET',
+      headers: getHeaders(credentials),
+    };
+
     if (options.logTraffic) {
       console.log(` > GET: ${url.href}`);
     }
-
-    const opts = {
-      method: 'GET',
-      headers: getHeaders(credentials, sendChannelId),
-    };
 
     const res = await fetch(url.href, opts);
     return getResult(res);
@@ -275,8 +296,7 @@ export const createShipBobApi = async (
     credentials: Credentials,
     data: object | undefined,
     path: string,
-    method: 'POST' | 'PATCH' | 'DELETE' = 'POST',
-    sendChannelId = true
+    method: 'POST' | 'PATCH' | 'DELETE' = 'POST'
   ): Promise<DataResponse<T>> => {
     if (credentials.channelId === undefined) {
       throw new Error('Channel ID missing');
@@ -284,33 +304,68 @@ export const createShipBobApi = async (
 
     const url = new URL(`https://${apiBaseUrl}${path}`);
 
+    const opts = {
+      method,
+      headers: getHeaders(credentials),
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    };
+
     if (options.logTraffic) {
       console.log(` > ${method} ${url.href}`);
     }
-
-    const opts = {
-      method,
-      headers: getHeaders(credentials, sendChannelId),
-      body: data !== undefined ? JSON.stringify(data) : undefined,
-    };
 
     const res = await fetch(url.href, opts);
     return getResult(res);
   };
 
-  const channelsResponse = await httpGet<ChannelsResponse>(credentials, PATH_1_0_CHANNEL);
+  const channelsResponse = await httpGet<Channel[]>(credentials, PATH_1_0_CHANNEL);
 
   if (!channelsResponse.success) {
     throw new Error(` > GET /1.0/channel -> ${channelsResponse.statusCode} '${channelsResponse.data as string}'`);
   }
-  const smaChannel = channelsResponse.data.find((c) => c.application_name === channelApplicationName);
-  if (smaChannel === undefined) {
-    throw new Error(`Did not find SMA channel {${channelsResponse.data.map((c) => c.application_name).join(',')}}`);
+
+  const selectedChannel =
+    typeof channelPredicateOrApplicationName === 'string'
+      ? channelsResponse.data.find((c) => c.application_name === channelPredicateOrApplicationName)
+      : channelPredicateOrApplicationName(channelsResponse.data);
+
+  if (selectedChannel === undefined) {
+    throw new Error(
+      `Did not find channel.  Available application names: {${channelsResponse.data.map((c) => c.application_name).join(',')}}`
+    );
   }
 
-  credentials.channelId = smaChannel.id;
+  if (options.logTraffic) {
+    console.log(
+      ` > Found channel id: ${selectedChannel.id} with application name: '${selectedChannel.application_name}'`
+    );
+  }
+
+  credentials.channelId = selectedChannel.id;
 
   return {
+    get sendingChannelIds(): boolean {
+      return apiConfiguration.sendChannelId;
+    },
+    set sendChannelId(value: boolean) {
+      apiConfiguration.sendChannelId = value;
+    },
+
+    /**
+     * Useful to retrive cursor paths (ie: next) or header 'next-page'.  You should call like:
+     *
+     * `api.getPath<ExperimentalPagedResult<GetProductExperimentalResponse>>('/Product?cursor=H4sIAAA...')`
+     *
+     * NOTE: can be called without typings.  ie: `api.getPath('/Product?cursor=H4sIAAA...')`
+     * @param path full path with leading slash
+     * @returns response with expected typings you can provide.
+     */
+    getPath: async <T>(path: string) => {
+      return await httpGet<T>(credentials, path);
+    },
+    getChannels: async () => {
+      return await httpGet<Channel>(credentials, PATH_1_0_CHANNEL);
+    },
     /**
      * Gets by *their* product id
      */
@@ -318,7 +373,7 @@ export const createShipBobApi = async (
       const getProductResult = await httpGet<GetProduct1_0Result>(credentials, `${PATH_1_0_PRODUCT}/${productId}`);
       return getProductResult;
     },
-    getProducts1_0: async (query: GetProducts1_0QueryString) => {
+    getProducts1_0: async (query?: GetProducts1_0QueryString) => {
       return await httpGet<GetProduct1_0Result[]>(credentials, PATH_1_0_PRODUCT, query);
     },
     /**
@@ -361,13 +416,13 @@ export const createShipBobApi = async (
      * Example: /product?sku=any:shirt-a,shirt-b,shirt-c Find products that match any of these SKUs
      * Example: /product?onHandQuantity=gt:0 Find products where OnHandQty greater than 0
      */
-    getProducts2_0: async (query: GetProductQueryStrings) => {
+    getProducts2_0: async (query?: GetProductQueryStrings) => {
       return await httpGet<GetProduct2_0Response[]>(credentials, PATH_2_0_PRODUCT, query);
     },
     /**
      * Note sure how this is different from /2.0/product.  Only notable difference is "barcodes" type from string to object.
      */
-    getProductsExperimental: async (query: Partial<GetProductQueryStrings>) => {
+    getProductsExperimental: async (query?: Partial<GetProductQueryStrings>) => {
       return await httpGet<ExperimentalPagedResult<GetProductExperimentalResponse>>(
         credentials,
         PATH_EXPERIMENTAL_PRODUCT,
@@ -396,8 +451,22 @@ export const createShipBobApi = async (
     /**
      * Look in the returned headers to get paging information.
      */
-    getOrders: async (query: Partial<GetOrdersQueryStrings>) => {
+    getOrders: async (query?: Partial<GetOrdersQueryStrings>) => {
       return await httpGet<Order[]>(credentials, PATH_1_0_ORDER, query);
+    },
+    /**
+     * Get one Shipment by Order Id and Shipment Id
+     */
+    getOneShipmentByOrderIdAndShipmentId: async (orderId: number, shipmentId: number) => {
+      const path = `${PATH_1_0_ORDER}/${orderId}/shipment/${shipmentId}`;
+      return await httpGet<OrderShipment>(credentials, path);
+    },
+    /**
+     * Get one Shipment by Shipment Id
+     */
+    getOneShipment: async (shipmentId: number) => {
+      const path = `${PATH_1_0_SHIPMENT}/${shipmentId}`;
+      return await httpGet<OrderShipment>(credentials, path);
     },
     /**
      * NOTE: After you place an order it is not immediately available on the "getOrders" endpoint.
@@ -429,18 +498,19 @@ export const createShipBobApi = async (
      * @param sendChannelId defaults `true`.  Not providing channel id will (I think) subscribe to all channels.  You need to match when unsubscribing.
      * @returns
      */
-    registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>, sendChannelId = true) => {
-      return await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK, undefined, sendChannelId);
+    registerWebhookSubscription: async (webhook: Omit<Webhook, 'id' | 'created_at'>) => {
+      return await httpData<Webhook>(credentials, webhook, PATH_1_0_WEBHOOK, undefined);
     },
     /**
      * Can generate 500 response with data: "The wait operation timed out."  If so, check your channel id (or lack thereof) matches the subscription registration.
      *
+     * NOTE: make sure the API is configured to send or not send the same as when you registered the webhook.
+     *
      * @param id channelId from getWebhooks()
-     * @param sendChannelId defaults `true`.  You need to match this with when you subscribed.  There's no way to see this anywhere.
      * @returns
      */
-    unregisterWebhookSubscription: async (id: number, sendChannelId = true) => {
-      return await httpData<Webhook>(credentials, undefined, `${PATH_1_0_WEBHOOK}/${id}`, 'DELETE', sendChannelId);
+    unregisterWebhookSubscription: async (id: number) => {
+      return await httpData<Webhook>(credentials, undefined, `${PATH_1_0_WEBHOOK}/${id}`, 'DELETE');
     },
     getFulfillmentCenters: async () => {
       return await httpGet<FulfillmentCenter[]>(credentials, PATH_1_0_FULFILLMENT_CENTER);

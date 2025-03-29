@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
 import type { Nullable } from '.';
 
-export type ChannelsResponse = {
+export type Channel = {
   id: number;
   name: string;
   application_name: string;
   scopes: string[];
-}[];
+};
 
 export type Address = {
   /**
@@ -1357,6 +1357,11 @@ export type ListInventoryQueryStrings = {
   Limit: number;
   IsActive: boolean;
   IsDigital: boolean;
+  /**
+   * ShipBob recommends sending only 150/request
+   *
+   * NOTE: if you pass ie: 250 IDs then you will get 404s from shipbob.
+   */
   IDs: number[];
   /**
    * Sort will default to ascending order for each field. To sort in descending order please pass a "-" in front of the field name. For example, Sort=-onHand,name will sort by onHand descending
@@ -1547,3 +1552,138 @@ export type WebhookResponsesByTopic =
         status: 'Cancelled';
       };
     };
+
+/**
+ * OAuth types here
+ */
+export type CreateOptions = {
+  /**
+   * console.log HTTP traffic (http verb + endpoint)
+   */
+  logTraffic?: boolean;
+  /**
+   * Setup if the API sends the channel.  You can alter/check this on the API object after API builder creation.
+   */
+  sendChannelId?: boolean;
+};
+
+export type AuthScopesWeb =
+  | 'openid'
+  | 'profile'
+  | 'email'
+  | 'read'
+  | 'write'
+  | 'offline_access'
+  | 'inboundManagement_read'
+  | 'fulfillments_read'
+  | 'orders_read'
+  | 'orders_write'
+  | 'orderstateapi_read'
+  | 'receiving_read'
+  | 'receiving_write'
+  | 'returns_read'
+  | 'returns_write'
+  | 'addressValidation'
+  | 'labeling_read'
+  | 'shipment_tracking_read'
+  | 'labeling_write'
+  | 'inventory_read'
+  | 'inventory_write'
+  | 'channels_read'
+  | 'locations_read'
+  | 'locations_write'
+  | 'workOrders_read'
+  | 'workOrders_write'
+  | 'powerBIconfig_read'
+  | 'products_read'
+  | 'pricing_read'
+  | 'fulfillment_customization_write'
+  | 'fulfillment_customization_read'
+  | 'cartbob_write'
+  | 'cartbob_read'
+  | 'onboarding_read'
+  | 'onboarding_write'
+  | 'inventoryallocation_read'
+  | 'internal_integrations_read'
+  | 'internal_integrations_write'
+  | 'internal_fulfillments_write'
+  | 'fba_read'
+  | 'fba_write'
+  | 'pricing_write'
+  | 'token_management'
+  | 'products_write'
+  | 'b2bpacking_read'
+  | 'b2bpacking_write'
+  | 'membership_read'
+  | 'membership_write'
+  | 'useraccounts_read'
+  | 'useraccounts_write'
+  | 'shippingservice_read'
+  | 'inventory_views_read'
+  | 'inventory_views_write';
+/**
+ * These are the scopes granted by generated OAuth clients
+ */
+export type AuthScopesAPI =
+  | 'orders_read'
+  | 'orders_write'
+  | 'products_read'
+  | 'products_write'
+  | 'fulfillments_read'
+  | 'inventory_read'
+  | 'channels_read'
+  | 'receiving_read'
+  | 'receiving_write'
+  | 'returns_read'
+  | 'returns_write'
+  | 'webhooks_read'
+  | 'webhooks_write'
+  | 'locations_read'
+  | 'offline_access';
+
+export type AuthorizeParametersCommon<T extends AuthScopesWeb | AuthScopesAPI> = {
+  /**
+   * Client id provided by site registration.
+   */
+  client_id: string;
+  /**
+   * The callback URI ShipBob will call after the user responds to the request for consent. Must match one of the provided values from site registration
+   *
+   * Your application must implement a GET endpoint callback to understand the URI fragment parameters `error`, `state`, `code`, `scope`
+   */
+  redirect_uri: string;
+  /**
+   * One or more scopes granted by step 1, space-separated.
+   *
+   * NOTE: if you want to take advantage of refresh tokens (aka offline access mode) you must additionally request the “offline_access” scope.
+   */
+  scope: T[];
+  /**
+   * Application-provided string to help prevent replay attacks. Echoed back to the application in the callback for validation.
+   */
+  state?: string;
+};
+/**
+ * NOTE: These parameters must be URL encoded, particularly redirect_uri
+ */
+export type AuthorizeParametersAPI = {
+  /**
+   * If you include this query parameter with value form_post then we will make a POST request to your callback URL, instead of including the data as a fragment.
+   */
+  response_mode?: 'form_post';
+  /**
+   * A random string you can send and we will send it back within the token, to prevent replay attacks, code substitutions, etc.
+   */
+  nonce?: string;
+  /**
+   * Name of the integration for this particular user. We recommend that you know the user’s store name on your platform. If not provided, the user will be prompted to provide their name or choose one from a drop-down of options.
+   */
+  integration_name?: string;
+} & AuthorizeParametersCommon<AuthScopesAPI>;
+
+export type AuthorizeParametersWeb = {
+  response_type?: 'code';
+  code_challenge: string;
+  code_challenge_method: 'S256';
+  shipbob_response_mode?: 'query';
+} & AuthorizeParametersCommon<AuthScopesWeb>;
