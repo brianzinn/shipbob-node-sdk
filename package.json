@@ -9,7 +9,7 @@
     "prebuild": "rimraf dist && eslint . --ignore-pattern generated/ && prettier \"**/*.ts\" --check",
     "build": "tsc",
     "lint": "eslint . --ignore-pattern generated/",
-    "prettier:write": "prettier \"**/*.ts\" --write",
+    "prettier:write": "prettier \"**/*.ts\" \"*.md\" --write",
     "generate:client": "openapi-generator-cli generate -i openapi.json -g typescript -o generated/openapi --additional-properties=npmName=restClient,supportsES6=true,withInterfaces=true",
     "test": "mocha"
   },
@@ -29,5 +29,13 @@
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.1"
+  },
+  "peerDependencies": {
+    "puppeteer": ">=22"
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    }
   }
 }
