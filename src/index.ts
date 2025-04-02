@@ -33,6 +33,7 @@ import {
 
 export * from './types';
 export * from './oAuth';
+export * from './WebScraper';
 
 export type Nullable<T> = T | null;
 
@@ -131,6 +132,7 @@ export const createShipBobApi = async (
     | ((channels: Channel[]) => Channel | undefined) = DEFAULT_CHANNEL_APPLICATION_NAME,
   options: CreateOptions = {
     logTraffic: false,
+    skipChannelLoad: false,
   }
 ) => {
   if (token === undefined || token === '') {
@@ -189,6 +191,7 @@ export const createShipBobApi = async (
     };
 
     const hasJsonContentHeader = (res: Response) => {
+      // TODO: consider making this case-insensitive
       const contentType = res.headers.has(CONTENT_TYPE) ? res.headers.get(CONTENT_TYPE) : null;
       return (
         contentType &&
@@ -236,6 +239,13 @@ export const createShipBobApi = async (
 
     if (credentials.channelId && apiConfiguration.sendChannelId !== false) {
       headers['shipbob_channel_id'] = credentials.channelId.toString();
+    }
+
+    if (options.extraHeaders) {
+      for (const key of Object.keys(options.extraHeaders)) {
+        // these will be logged if they are configured
+        headers[key] = options.extraHeaders[key];
+      }
     }
 
     if (options.logTraffic === true) {
@@ -318,30 +328,34 @@ export const createShipBobApi = async (
     return getResult(res);
   };
 
-  const channelsResponse = await httpGet<Channel[]>(credentials, PATH_1_0_CHANNEL);
+  if (options.skipChannelLoad !== true) {
+    const channelsResponse = await httpGet<Channel[]>(credentials, PATH_1_0_CHANNEL);
 
-  if (!channelsResponse.success) {
-    throw new Error(` > GET /1.0/channel -> ${channelsResponse.statusCode} '${channelsResponse.data as string}'`);
+    if (!channelsResponse.success) {
+      throw new Error(` > GET /1.0/channel -> ${channelsResponse.statusCode} '${channelsResponse.data as string}'`);
+    }
+
+    const selectedChannel =
+      typeof channelPredicateOrApplicationName === 'string'
+        ? channelsResponse.data.find((c) => c.application_name === channelPredicateOrApplicationName)
+        : channelPredicateOrApplicationName(channelsResponse.data);
+
+    if (selectedChannel === undefined) {
+      throw new Error(
+        `Did not find channel.  Available application names: {${channelsResponse.data.map((c) => c.application_name).join(',')}}`
+      );
+    }
+
+    if (options.logTraffic) {
+      console.log(
+        ` > Found channel id: ${selectedChannel.id} with application name: '${selectedChannel.application_name}'`
+      );
+    }
+
+    credentials.channelId = selectedChannel.id;
+  } else {
+    console.warn(' > channel load skipped.  All requests will be sent without a channel id.');
   }
-
-  const selectedChannel =
-    typeof channelPredicateOrApplicationName === 'string'
-      ? channelsResponse.data.find((c) => c.application_name === channelPredicateOrApplicationName)
-      : channelPredicateOrApplicationName(channelsResponse.data);
-
-  if (selectedChannel === undefined) {
-    throw new Error(
-      `Did not find channel.  Available application names: {${channelsResponse.data.map((c) => c.application_name).join(',')}}`
-    );
-  }
-
-  if (options.logTraffic) {
-    console.log(
-      ` > Found channel id: ${selectedChannel.id} with application name: '${selectedChannel.application_name}'`
-    );
-  }
-
-  credentials.channelId = selectedChannel.id;
 
   return {
     get sendingChannelIds(): boolean {
@@ -566,7 +580,7 @@ export const createShipBobApi = async (
     /**
      * NOTE: should verify the response type matches the product 1.0 endpoint
      */
-    listInventory: async (query: Partial<ListInventoryQueryStrings>) => {
+    listInventory: async (query?: Partial<ListInventoryQueryStrings>) => {
       return await httpGet<GetInventory1_0Result[]>(credentials, PATH_1_0_INVENTORY, query);
     },
     /**

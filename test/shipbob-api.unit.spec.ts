@@ -13,6 +13,7 @@ import {
 } from '../src';
 import { oAuthGetAccessToken, oAuthGetConnectUrl, oAuthRefreshAccessToken } from '../src/oAuth';
 import assert from 'assert';
+import { getAccessTokenUI } from '../src/WebScraper';
 
 /**
  * tests that create entities (WRO/Product/Order) are skipped.
@@ -158,7 +159,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.strictEqual(nextProducts.data[0].id, 836990721, 'this will fail, but shows strong typing from "getPath"');
   });
 
-  it.only('shipbob API: get a 2.0 products - ensure it is setup for lot', async function test() {
+  it('shipbob API: get a 2.0 products - ensure it is setup for lot', async function test() {
     const api = await createApiFromPAT();
     const results = await api.getProducts2_0();
     assert.ok(results.success, 'should succeed');
@@ -226,7 +227,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       },
       retailer_program_data: {
         purchase_order_number: 'TEST2',
-        retailer_program_type: 'KITS',
+        retailer_program_type: 'TEST',
       },
       reference_id: 'TEST2',
       shipping_method: 'Standard',
@@ -352,7 +353,11 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
 
   it('shipbob API: get orders', async function test() {
     const api = await createApiFromPAT();
-    const results = await api.getOrders(/*{ ReferenceIds: '3659767',}*/);
+    const results = await api.getOrders({
+      HasTracking: true,
+      IsTrackingUploaded: false,
+      StartDate: '03-25-2025',
+    });
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(200, results.statusCode, 'expected an OK status code');
     assert.deepEqual([], results.data, 'current list mismatch');
@@ -366,9 +371,9 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.strictEqual(response.data.status, 'Completed', 'should be marked as "Completed"');
   });
 
-  it('shipbob API: get one shipment by shipmentId', async function test() {
+  it.skip('shipbob API: get one shipment by shipmentId', async function test() {
     const api = await createApiFromPAT();
-    const response = await api.getOneShipment(247159563);
+    const response = await api.getOneShipment(247349089);
     assert.ok(response.success, 'should succeed');
     assert.strictEqual(response.statusCode, 200, 'expected an OK status code');
     assert.strictEqual(response.data.status, 'Completed', 'should be marked as "Completed"');
@@ -487,7 +492,53 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     assert.deepEqual({}, results.data, 'this will never match');
   });
 
-  const OAUTH_REDIRECT_URI = 'https://kits.ngrok.io';
+  it.skip('shipbob UI + API: web UI auth + API inv/products', async function test() {
+    const url = process.env.SHIPBOB_API_URL;
+    const email = process.env.SHIPBOB_WEB_UI_EMAIL;
+    const password = process.env.SHIPBOB_WEB_UI_PASSWORD;
+
+    if (email === undefined || password === undefined) {
+      assert.fail('email or password are not set in .env');
+    }
+
+    // scrape web.shipbob.com website:
+    const authResponse = await getAccessTokenUI(
+      {
+        email,
+        password,
+      },
+      60
+    );
+
+    assert.ok(authResponse.success, 'expecting the authentication to succeed');
+
+    const missingChannelScope = authResponse.scopes.indexOf('channel_read') === -1;
+    console.log(` > missing channels_read scope: ${missingChannelScope}`);
+
+    const webUIAPI = await createShipBobApi(authResponse.accessToken, url, '<unused>', {
+      logTraffic: true,
+      skipChannelLoad: missingChannelScope,
+      extraHeaders: {
+        origin: 'https://web.shipbob.com',
+        referer: 'https://web.shipbob.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0',
+        'accept-language': 'en-US',
+      },
+    });
+
+    const inventoryListResponse = await webUIAPI.listInventory({ Ids: [20104984] });
+    assert.ok(inventoryListResponse.success);
+    assert.strictEqual(1, inventoryListResponse.data.length);
+    assert.strictEqual(20104984, inventoryListResponse.data[0].id);
+
+    const productsExperimentalResponse = await webUIAPI.getProductsExperimental();
+    assert.ok(productsExperimentalResponse.success);
+
+    const products1Response = await webUIAPI.getProducts1_0();
+    assert.ok(products1Response.success);
+  });
+
+  const OAUTH_REDIRECT_URI = 'https://yourname.ngrok.io';
 
   /**
    * NOTE: Get the "code" from the redirect URI - you can use it in the next test.
@@ -513,7 +564,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
         'locations_read',
         'offline_access',
       ],
-      integration_name: 'KITS app2',
+      integration_name: 'your app name',
     });
     assert.ok(authUrl !== '', 'should have a URL');
   });

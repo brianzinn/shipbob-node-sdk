@@ -1361,8 +1361,9 @@ export type ListInventoryQueryStrings = {
    * ShipBob recommends sending only 150/request
    *
    * NOTE: if you pass ie: 250 IDs then you will get 404s from shipbob.
+   * NOTE: it's IDs in the documentation.  Web UI sends "Ids", so probably case-insensitive
    */
-  IDs: number[];
+  Ids: number[];
   /**
    * Sort will default to ascending order for each field. To sort in descending order please pass a "-" in front of the field name. For example, Sort=-onHand,name will sort by onHand descending
    *
@@ -1565,8 +1566,23 @@ export type CreateOptions = {
    * Setup if the API sends the channel.  You can alter/check this on the API object after API builder creation.
    */
   sendChannelId?: boolean;
+  /**
+   * Set to `true` to skip checking channels on init and/or are missing "channels_read" scope.
+   *
+   * ie: If you scrape web.shipbob.com with a web login, it will not have access to `/channels/1.0`
+   */
+  skipChannelLoad?: boolean;
+  /**
+   * Send these along with each request
+   *
+   * ie: You can send extra headers like User-Agent.  This may be needed to bypass cloudflare.
+   */
+  extraHeaders?: Record<string, string>;
 };
 
+/**
+ * NOTE: no `channels_read`, so you'll need to use "skipChannelLoad" when creating an API from this.
+ */
 export type AuthScopesWeb =
   | 'openid'
   | 'profile'
@@ -1621,6 +1637,7 @@ export type AuthScopesWeb =
   | 'shippingservice_read'
   | 'inventory_views_read'
   | 'inventory_views_write';
+
 /**
  * These are the scopes granted by generated OAuth clients
  */

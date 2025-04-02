@@ -3,25 +3,22 @@ First of all there are no official SDKs for ShipBob.  I'm just dropping this her
 
 This library uses the built-in node.js fetch, so you'll want a newer node version with undici support.
 
-Not really sure anybody will ever need this as many common platforms probably have integrations.  There are a couple of other community SDKs.  They do not have `/2.0/*` or `/experimental/*` endpoints:
- - [shipbob-sdk-python](https://github.com/community-phone-company/shipbob-sdk-python)
- - [shipbob-go](https://github.com/stryd/shipbob-go) - generated from Open API
-
-NOTE: I did not notice until all this code was written that ShipBob had published an Open API spec :facepunch:.  You may have better luck generating your own client.  Maybe those generated typings at least belong here.
-```bash
-$ yarn generate:client
-```
-The included script using OpenAPI can generate clients in various languages.
-
 This SDK exposes some endpoints not available in the OpenAPI including:
 - `/2.0/receiving-extended`
 - `/2.0/product`
 - `/experimental/product` :skull:
 - `/experimental/receiving` :skull:
 
-Have a look in the `/test` folder.  You might like more something like PostMan, but you can run and debug these "tests" in VS Code.  You need a `.env` file with a Personal Access Token:
-```
+Have a look in the `/test` folder.  You might like more something like PostMan, but you can run and debug these "tests" in VS Code.  You need a `.env` file like this:
+```bash
+# for the PAT (Personal Access Token) login (recommended)
 SHIPBOB_API_TOKEN=<redacted>
+# for the oAuth login
+SHIPBOB_CLIENT_ID=<redacted>
+SHIPBOB_CLIENT_SECRET=<redacted>
+# for the Web UI scraper (web.shipbob.com) login
+SHIPBOB_WEB_UI_EMAIL=email@company.com
+SHIPBOB_WEB_UI_PASSWORD=<redacted>
 ```
 
 # API implementation progress
@@ -144,11 +141,22 @@ This is not part of the API, but instead allows you to follow URI's returned in 
 # Building locally
 For making changes to this library locally - use `yarn link` to test out the changes easily.  This is useful if you would like to contribute.
 
+# Other options
+Not really sure anybody will ever need this as many common platforms probably have integrations.  There are a couple of other community SDKs.  They do not have `/2.0/*` or `/experimental/*` endpoints:
+ - [shipbob-sdk-python](https://github.com/community-phone-company/shipbob-sdk-python)
+ - [shipbob-go](https://github.com/stryd/shipbob-go) - generated from Open API
+
+NOTE: I did not notice until all this code was written that ShipBob had published an Open API spec :facepunch:.  You may have better luck generating your own client.  Maybe those generated typings at least belong here.
+```bash
+$ yarn generate:client
+```
+The included script using OpenAPI can generate clients in various languages.
+
 # Testing
 You can fake out this library itself, or otherwise mocking the ShipBob API http calls are quite easy to simulate with `nock`.  Here's a way to test creating an order verifying idempotent operation.
 
 ```javascript
-// NOTE: nock > 14 is needed to mock underlying fetch calls
+// NOTE: nock > 14 with undici is needed to mock underlying "fetch" calls
 const CHANNELS_RESPONSE: ChannelsResponse = [{
   id: 1,
   application_name: 'SMA',
@@ -186,6 +194,7 @@ You can create a monitor using polling with api.experimentalReceivingSetExternal
 If you want something more event driven, you can use the emails they send out with an inbound email processor:
 ie:
 ```javascript
+// this is done using Mandrill/Mailchimp Inbound mail processor:
 for (const event of events) {
   const { subject } = event.msg;
   switch (subject) {
@@ -218,16 +227,93 @@ for (const event of events) {
 You can publish that as an event or push to a queue and it will act as a "webhook".
 
 # OAuth
-There is no S2S (server-to-server) oAuth.  User intervention is required.  There are only helper methods to help with that.
+There is no S2S (server-to-server) oAuth.  User intervention is required.  There are only helper methods to help with that.  You could bypass that with a webscraper (see next section).
 - `oAuthGetConnectUrl()` direct an end user to follow the generated URL.  Use 'offline_access' as part of scope to get a refresh token.
 - `oAuthGetAccessToken()` call this with the `code` query string fragment `https://yourname.ngrok.io/#code=...&id_token=...` the redirect_uri (and your client Id and secret from ShipBob App)
 - `oAuthRefreshAccessToken()` call this with the last `refresh_token` you received, otherwise the same as `oAuthGetAccessToken()` without `code`.
 
 The method to get/refresh access token both return `access_token`, so you provide that to `createShipBobApi(...)` with your application name.
-Then you can use the same as a PAT (Personal Access Token).
+
+If you create products with your API, you will not be able to see them with an oAuth app.  I went down a big rabbit hole here - something to do with different channels.  Try not to waste as much time as I did here and avoid using oAuth unless you are building actually an app.
+
+# Access APIs available to web.shipbob.com
+The Web UI has a much broader set of unsupported APIs (ordersapi.shipbob.com, shippingservice.shipbob.com, merchantpricingapi.shipbob.com, etc.). For example, you cannot "patch" a WRO on the public receiving API, but you can somehow with a web login, so it unlocks extra functionality and has a separate rate limit from the API.
+You would need to create a ShipBob account and then use those credentials to login with a scraper (see /src/WebScraper.ts).  The account can only be logged with one session at a time.  Look through AuthScopesWeb.ts you can probably work backwards the scopes needed for each API.
+
+There is no documentation for these extra APIs - you can look through network tracing in the browser.  See unit tests for full example:
+```typescript
+// scrape web.shipbob.com website:
+const authResponse = await getAccessTokenUI({
+  email,
+  password
+});
+
+const missingChannelScope = authResponse.scopes.indexOf("channel_read") === -1;
+
+const webUIAPI = await createShipBobApi(authResponse.accessToken, url, '<unused>', {
+  skipChannelLoad: missingChannelScope,
+});
+
+const inventoryListResponse = await webUIAPI.listInventory({ Ids: [20104984] });
+```
 
 # Polling Orders for tracking
-1. Poll GET 1.0/order?HasTracking=true&IsTrackingUploaded=false&startDate=03-25-2025
+This is a suggested way to track orders from ShipBob.  This may be better than using the webhook, sometimes the `order_shipped` webhook fires with no tracking information.
+1. Poll GET `/1.0/order?HasTracking=true&IsTrackingUploaded=false&startDate=03-25-2025`
+```typescript
+const results = await api.getOrders({
+  HasTracking: true,
+  IsTrackingUploaded: false,
+  StartDate: '03-25-2025'
+});
+```
 2. Iterate through each order (and each shipment)
 3. Sync the tracking back to your platform
 4. Mark the order as shipped using this endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1%7BshipmentId%7D/put). Or, you can mark it as shipped using the bulk mark as shipped endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1:bulkUpdateTrackingUpload/post).
+
+**NOTE:** `PUT`/`POST` to `/1.0/shipment` not implemented in this library yet.
+
+# How to sync WROs (Warehouse Receiving Orders) back to your system
+There are 2 options to do this:
+
+## Option #1 - Simple (wait until the WRO status is Completed)
+
+- Poll our GET WRO endpoint for WROs in Completed status:
+GET  https://sandbox-api.shipbob.com/2.0/receiving-extended?Statuses=Completed&ExternalSync=false
+```typescript
+// with this library
+const results = await api.getReceivingExtended({
+      Statuses: 'Completed',
+      ExternalSync: false,
+    });
+```
+- Iterate through each inventory id in the inventory_quantities array and sync the stowed_quantity back to your system
+- Mark the WRO as synced (see below for the endpoint to use and sample request)
+- Poll the GET WRO endpoint again and 442946 will no longer show up as you already synced this and ExternalSync is now set to true
+
+
+Mark the WRO as synced (this is optional and a alternative option to continuously polling completed WROs that you may or may not know you have already synced)
+
+POST https://sandbox-api.shipbob.com/experimental/receiving/:set-external-sync
+```json
+{
+    "ids": [442946],
+    "is_external_sync": true
+}
+```
+```typescript
+// with this library
+// use Ids from "getReceivingExtended" with ExternalSync: false.
+const results = await api.experimentalReceivingSetExternalSync([443001], true);
+```
+
+## Option #2 - Advanced (partial receiving)
+
+- Poll our GET WRO endpoint for WROs with statuses "processing" and "completed": https://sandbox-api.shipbob.com/2.0/receiving-extended?Statuses=Processing,Completed&ExternalSync=false.
+
+**Note:** When initially testing you can remove the statuses from the query params, and you will see the default status of "AwaitingArrival" whenever a WRO is created. There is no sandbox simulation to move these forward.
+
+- For each WRO, make a request to the Get Warehouse Receiving Order Boxes endpoint: https://sandbox-api.shipbob.com/2.0/receiving/442997/boxes
+- Iterate through each box
+- Iterate through each item in the box_items array
+- Sync the stowed_quantity for each item back to your system
