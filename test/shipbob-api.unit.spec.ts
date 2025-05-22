@@ -434,7 +434,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
       },
     });
     assert.ok(results.success, 'should succeed');
-    assert.strictEqual(201, results.statusCode, 'should have created the WRO');
+    assert.strictEqual(201, results.statusCode, 'should have created the simulation');
     assert.strictEqual(1, results.data, 'should have found exactly 1 product');
   });
 

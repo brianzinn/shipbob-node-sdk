@@ -33,7 +33,8 @@ import {
 
 export * from './types';
 export * from './oAuth';
-export * from './WebScraper';
+// exporting will require puppeteer in client
+// export * from './WebScraper';
 
 export type Nullable<T> = T | null;
 
@@ -530,17 +531,6 @@ export const createShipBobApi = async (
       return await httpGet<FulfillmentCenter[]>(credentials, PATH_1_0_FULFILLMENT_CENTER);
     },
     createWarehouseReceivingOrder: async (request: WarehouseReceivingOrderRequest) => {
-      // due to failures downstream in their WRO processing.  They will need to create multiple WROs that cannot be merged:
-      if (request.purchase_order_number) {
-        if (!/^[A-Za-z0-9 ]+$/.test(request.purchase_order_number)) {
-          const validPurchaseOrderNumber = request.purchase_order_number.replace(/[^A-Za-z0-9 ]/gi, ' ');
-          console.log(
-            ` Replacing disallowed PO number: '${request.purchase_order_number}' -> '${validPurchaseOrderNumber}'`
-          );
-          request.purchase_order_number = validPurchaseOrderNumber;
-        }
-      }
-
       return await httpData<WarehouseReceivingOrderResponse>(credentials, request, PATH_2_0_RECEIVING);
     },
     getWarehouseReceivingOrder: async (orderId: number) => {
