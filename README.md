@@ -11,6 +11,20 @@ This SDK exposes some endpoints not available in the OpenAPI including:
 - `/experimental/product` :skull:
 - `/experimental/receiving` :skull:
 
+<div align="center">
+ <a href="https://www.npmjs.com/package/shipbob-node-sdk">
+  <img alt="Weekly downloads" src="https://badgen.net/npm/dw/shipbob-node-sdk?color=blue" />
+ </a>
+</div>
+
+## install
+```bash
+npm i shipbob-node-sdk
+```
+```bash
+yarn add shipbob-node-sdk
+```
+
 Have a look in the `/test` folder. You might like more something like PostMan, but you can run and debug these "tests" in VS Code. You need a `.env` file like this:
 
 ```bash
