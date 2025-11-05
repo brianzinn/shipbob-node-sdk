@@ -37,7 +37,12 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     const api = await createApiFromPAT();
     const skuList = ['123', '456'];
     const productSearch = await api.getProductsExperimental({ sku: `any:${skuList.join(',')}` });
-    console.log('product search:', productSearch);
+    assert.ok(productSearch.success);
+
+    const missing = skuList.filter((sku) => {
+      return !productSearch.data.items.some((item) => item.variants[0].sku === sku);
+    });
+    console.log('missing on shipbob:', missing.join(','));
   });
 
   it('shipbob API: get products (experimental)', async function test() {
@@ -185,6 +190,12 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
           lot_information: {
             is_lot: true,
             minimum_shelf_life_days: null,
+          },
+          fulfillment_settings: {
+            serial_scan: {
+              is_enabled: true,
+              prefix: '01',
+            },
           },
           packaging_material_type_id: PackagingMaterial.Box,
           packaging_requirement_id: PackagingRequirement['No Requirements'],
@@ -391,6 +402,7 @@ describe(' > ShipBob API tests', function shipBobAPITests() {
     const api = await createApiFromPAT();
     const results = await api.listInventory({
       Sort: '-onHand',
+      Limit: 2,
     });
     assert.ok(results.success, 'should succeed');
     assert.strictEqual(1, results.data.length, 'should have found exactly 1 product');

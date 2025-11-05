@@ -1163,6 +1163,9 @@ export enum ReturnAction {
 }
 
 export type VariantRequestProductExperimental = Omit<VariantRequestProduct2_0, 'barcode'> & {
+  /**
+   * Multiple barcodes support added in 2.0
+   */
   barcodes: {
     value: string;
     sticker_url: Nullable<string>;
@@ -1221,12 +1224,57 @@ export type VariantRequestProduct2_0 = {
     return_to_sender_primary_action_id: Nullable<ReturnAction>;
     return_to_sender_backup_action_id: Nullable<ReturnAction>;
   };
-  lot_information: {
+  lot_information?: {
     /**
      * If the product should use lot date based picking
      */
     is_lot: boolean;
     minimum_shelf_life_days: Nullable<number>;
+  };
+  /**
+   * This is not part of Open API spec, but found starting with Product 2.0
+   */
+  fulfillment_settings?: {
+    is_bpm_parcel?: boolean;
+    is_case_pick?: boolean;
+    msds_url?: Nullable<string>;
+    dangerous_goods?: boolean;
+    /**
+     * If the product requires a prop65 label in the box
+     */
+    requires_prop65?: boolean;
+    serial_scan?: {
+      /**
+       * Indicates if a Serial Scan is required during the pack process.
+       * Note: Serial scan requires either a prefix or a suffix to be defined
+       */
+      is_enabled: boolean;
+      /**
+       * The exact number of characters expected in the serial number
+       */
+      exact_character_length?: Nullable<number>;
+    } & (
+      | {
+          /**
+           * The prefix expected on the serial number
+           */
+          prefix: string;
+          /**
+           * The suffix expected on the serial number
+           */
+          suffix?: Nullable<string>;
+        }
+      | {
+          /**
+           * The prefix expected on the serial number
+           */
+          prefix?: Nullable<string>;
+          /**
+           * The suffix expected on the serial number
+           */
+          suffix: string;
+        }
+    );
   };
 };
 

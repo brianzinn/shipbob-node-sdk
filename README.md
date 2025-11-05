@@ -11,6 +11,9 @@ This SDK exposes some endpoints not available in the OpenAPI including:
 - `/experimental/product` :skull:
 - `/experimental/receiving` :skull:
 
+As of Nov 2025 the OpenAPI specs (including 2025-07) are available for additional versions:
+[Open API specs](https://developer.shipbob.com/faq#how-can-i-find-openapi-specs-for-each-api-version)
+
 <div align="center">
  <a href="https://www.npmjs.com/package/shipbob-node-sdk">
   <img alt="Weekly downloads" src="https://badgen.net/npm/dw/shipbob-node-sdk?color=blue" />
