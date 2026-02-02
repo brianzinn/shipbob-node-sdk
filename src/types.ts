@@ -639,6 +639,10 @@ export type CarrierShipType = 'Parcel' | 'Freight';
 
 export type PlaceOrderRequest = {
   /**
+   * Desired Fulfillment Center Location ID. If not specified, ShipBob will determine the location that fulfills this order.
+   */
+  location_id: null | number;
+  /**
    * User friendly orderId or store order number that will be shown on the Orders Page. If not provided, referenceId will be used (<= 400 characters)
    */
   order_number: Nullable<string>;
@@ -729,6 +733,12 @@ export type PlaceOrderRequest = {
    * Enum: "DTC" "DropShip" "B2B" "Transportation"
    */
   type: OrderType;
+
+  /**
+   * Gift message associated with the order
+   * Maximum string length: 500
+   */
+  gift_message: string | null;
 };
 
 export type ShippingMethod = {

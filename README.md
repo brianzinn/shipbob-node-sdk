@@ -21,9 +21,11 @@ As of Nov 2025 the OpenAPI specs (including 2025-07) are available for additiona
 </div>
 
 ## install
+
 ```bash
 npm i shipbob-node-sdk
 ```
+
 ```bash
 yarn add shipbob-node-sdk
 ```
@@ -389,3 +391,34 @@ const results = await api.experimentalReceivingSetExternalSync([443001], true);
 - Iterate through each box
 - Iterate through each item in the box_items array
 - Sync the stowed_quantity for each item back to your system
+
+# Synchronizing inventory levels
+
+There are no webhooks or easy way to sync. Plus once you place an order there is a delay (~1 minute) before the inventory levels are impacted.
+
+So, if you have one FC, you can use total_sellable_quantity for each inventory item.
+
+For multiple FCs - their recommendation is to use for each FC the fulfillable_quantity and subtract the total_exception_quantity (since it could be assigned to either FC).
+
+```json
+{
+  "id": 1234,
+  "name": "...",
+  "total_fulfillable_quantity": 1688,
+  "total_onhand_quantity": 1688,
+  "total_committed_quantity": 0,
+  "total_sellable_quantity": 1688,
+  "total_exception_quantity": 0,
+  "fulfillable_quantity_by_fulfillment_center": [
+    {
+      "id": 211,
+      "name": "Fairburn (GA)",
+      "fulfillable_quantity": 1688,
+      "onhand_quantity": 1688,
+      "committed_quantity": 0,
+      "awaiting_quantity": 0,
+      "internal_transfer_quantity": 0
+    }
+  ]
+}
+```
