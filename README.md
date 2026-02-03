@@ -1,5 +1,7 @@
 # ShipBob Node SDK
 
+Feb 2026 - The various versions of their API are all set to expire soon. They have published a policy (https://developer.shipbob.com/versioning) indicating that future versions will be supported for 12 months from release date and that versions `1.0` and `2.0` are deprecated.
+
 First of all there are no official SDKs for ShipBob. I'm just dropping this here, in case it will speed up somebody else getting started using their API.
 
 This library uses the built-in node.js fetch, so you'll want a newer node version with undici support.

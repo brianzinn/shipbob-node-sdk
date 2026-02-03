@@ -619,7 +619,7 @@ export type Order = {
    * probably good idea to use what is generated from the OpenAPI and reference here - the generated has lots of TS errors.
    */
   shipments: OrderShipment[];
-  gift_message: string;
+  gift_message?: string;
   shipping_terms: {
     /**
      * ie: "Parcel"
@@ -641,7 +641,7 @@ export type PlaceOrderRequest = {
   /**
    * Desired Fulfillment Center Location ID. If not specified, ShipBob will determine the location that fulfills this order.
    */
-  location_id: null | number;
+  location_id?: null | number;
   /**
    * User friendly orderId or store order number that will be shown on the Orders Page. If not provided, referenceId will be used (<= 400 characters)
    */
@@ -738,7 +738,7 @@ export type PlaceOrderRequest = {
    * Gift message associated with the order
    * Maximum string length: 500
    */
-  gift_message: string | null;
+  gift_message?: string | null;
 };
 
 export type ShippingMethod = {
