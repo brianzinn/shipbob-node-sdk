@@ -1,3 +1,6 @@
+import { OrdersShipmentViewModel } from './client/2025-07';
+import { get202601OrderByOrderId, get202601ShipmentByShipmentId, OrdersOrderViewModel } from './client/2026-01';
+
 /**
  * They list in the comment these are allowed, but API spec is a string.
  */
@@ -66,37 +69,75 @@ export enum ReturnAction {
 }
 
 /**
- * This can be used to lookup a webhook content based on the supplier "shipbob-topic" header.
+ * Webhooks registered on older APIs continue to use legacy topics.
+ *
+ * NOTE: Webhook topics were renamed in 2025-07, so believe this will depend on how you registered.
+ *       The underscore ones are legacy and dot ones are newer.
  */
-// export type WebhookResponsesByTopic =
-//   | {
-//       topic: 'order_shipped';
-//       payload: Order;
-//     }
-//   | {
-//       topic: 'shipment_delivered';
-//       payload: Omit<OrderShipment, 'status'> & {
-//         status: 'Completed';
-//       };
-//     }
-//   | {
-//       topic: 'shipment_exception';
-//       payload: Omit<OrderShipment, 'status'> & {
-//         status: 'Exception';
-//       };
-//     }
-//   | {
-//       topic: 'shipment_onhold';
-//       payload: Omit<OrderShipment, 'status'> & {
-//         status: 'OnHold';
-//       };
-//     }
-//   | {
-//       topic: 'shipment_cancelled';
-//       payload: Omit<OrderShipment, 'status'> & {
-//         status: 'Cancelled';
-//       };
-//     };
+export type WebhookResponsesByTopicLegacy =
+  | {
+      topic: 'order_shipped';
+      payload: OrdersOrderViewModel;
+    }
+  | {
+      topic: 'shipment_delivered';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Completed';
+      };
+    }
+  | {
+      topic: 'shipment_exception';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Exception';
+      };
+    }
+  | {
+      topic: 'shipment_onhold';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'OnHold';
+      };
+    }
+  | {
+      topic: 'shipment_cancelled';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Cancelled';
+      };
+    };
+
+/**
+ * This can be used to lookup (narrow type) of webhook contents based on the supplied "shipbob-topic" header.
+ *
+ * @since '2025-07
+ */
+export type WebhookResponsesByTopic202507 =
+  | {
+      topic: 'order.shipped';
+      payload: OrdersOrderViewModel;
+    }
+  | {
+      topic: 'shipment.delivered';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Completed';
+      };
+    }
+  | {
+      topic: 'shipment.exception';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Exception';
+      };
+    }
+  | {
+      topic: 'shipment.onhold';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'OnHold';
+      };
+    }
+  | {
+      topic: 'shipment.cancelled';
+      payload: Omit<OrdersShipmentViewModel, 'status'> & {
+        status: 'Cancelled';
+      };
+    };
 
 /**
  * OAuth types here

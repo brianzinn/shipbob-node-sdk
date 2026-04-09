@@ -1,11 +1,13 @@
 # ShipBob Node SDK
 
 The ShipBob API is in a state of flux as their 1.0 and 2.0 API versions are set to be deprecated and according to their website their end of support is July 31, 2026 (as of April).
+
 > After the end-of-support date, legacy versions will no longer be accessible.
 
 First of all there are no official SDKs for ShipBob. I'm just dropping this here, in case it will speed up somebody else getting started using their API.
 
 Originally I wrote a library that had endpoints not available in OpenAPI including:
+
 - `/2.0/receiving-extended`
 - `/2.0/product`
 - `/experimental/product` :skull:
@@ -13,7 +15,7 @@ Originally I wrote a library that had endpoints not available in OpenAPI includi
 
 It was so cumbersome to keep up-to-date and their API versions are set to expire after 1 year, so it only makes sense to use their OpenAPI spec to generate a client.
 
-The nice thing about this lib is that it uses tree-shaking, but it's not as friendly to use as the original version.  You will need to have a "POST" send the `body` and a "GET" will use `query`.  `path` will be needed when a parameter is part of the url.  So, you'll need to refer to the API to be able to use this.
+The nice thing about this lib is that it uses tree-shaking, but it's not as friendly to use as the original version. You will need to have a "POST" send the `body` and a "GET" will use `query`. `path` will be needed when a parameter is part of the url. So, you'll need to refer to the API to be able to use this.
 
 <div align="center">
  <a href="https://www.npmjs.com/package/shipbob-node-sdk">
@@ -52,9 +54,10 @@ SHIPBOB_WEB_UI_PASSWORD=<redacted>
 ```
 
 # API implementation
-Everything is implemented except for the `/simulate/*` endpoints, which are not in OpenAPI.  You can look at the `/test/shipbob-api.simulate.spec.ts` to see how to call them.
 
-I'll probably look at a way to have the client creation pick up the library version using a factory.  To start it's only `2026-01` version.
+Everything is implemented except for the `/simulate/*` endpoints, which are not in OpenAPI. You can look at the `/test/shipbob-api.simulate.spec.ts` to see how to call them.
+
+I'll probably look at a way to have the client creation pick up the library version using a factory. To start it's only `2026-01` version.
 
 ## Webhooks
 
@@ -71,7 +74,7 @@ ie: No webhooks for delivery exceptions ie: `Completed` -> `DeliveryException` w
 
 Partial rows of table from here: _(https://developer.shipbob.com/#shipment-statuses)_
 
-The typings of webhooks - i'll try to update those. It's basically an order and the status is known.  For some bizarre reason receiving has no webhooks.
+The typings of webhooks - i'll try to update those. It's basically an order and the status is known. For some bizarre reason receiving has no webhooks.
 
 ## Follow URIs
 
@@ -80,10 +83,14 @@ This is not part of the API, but instead allows you to follow URI's returned in 
 :heavy_check_mark: Ols API versions retrieve a path from a provided resource ie: header `next-page`: `api.getPath<T>(response.headers['next-page'])`
 
 latest version is part of JSON response:
+
 ```typescript
 import { createAPI } from 'shipbob-node-sdk';
 import { get202601Product } from 'shipbob-node-sdk/dist/client/2026-01';
-import { type Get202601ProductResponses, type Get202601ProductErrors} from 'shipbob-node-sdk/dist/client/2026-01/types.gen';
+import {
+  type Get202601ProductResponses,
+  type Get202601ProductErrors,
+} from 'shipbob-node-sdk/dist/client/2026-01/types.gen';
 
 const client = await createAPI('<your-token-here>', 'https://sandbox-api.shipbob.com', undefined, {
   logTraffic: true,
@@ -96,6 +103,7 @@ assert.ok(next !== null && next !== undefined, 'should have more pages');
 const pagedResult = await client.get<Get202601ProductResponses, Get202601ProductErrors>(next);
 assert.ok(pagedResult.data, 'should have paged data');
 ```
+
 # Building locally
 
 For making changes to this library locally - use `yarn link` to test out the changes easily. This is useful if you would like to contribute.
@@ -107,6 +115,7 @@ NOTE: I did not notice until I had written a custom implementation that ShipBob 
 # this is how the clients are generated (see scripts in package.json)
 $ yarn generate:2026-01
 ```
+
 # Testing
 
 You can fake out this library itself, or otherwise mocking the ShipBob API http calls are quite easy to simulate with `nock`. Here's a way to test creating an order verifying idempotent operation.
@@ -179,7 +188,7 @@ for (const event of events) {
 
 You can publish that as an event or push to a queue and it will act as a "webhook".
 
-**NOTE:** I discovered after writing the above inbound mail handler that a WRO you create may be split. ie: we created 1 WRO and it was split into 6 more WROs by the ShipBob team, so it's not really possible to link back to your system when that occurs.  Also, they have indicated to me there's no link on these WROs or UROs  (Unidentified Receiving Orders) that they create. There's no hierarchical relationship with the split WROs they are creating. In other words, you will need to implement polling anyway, so adding this is probably not worthwhile.
+**NOTE:** I discovered after writing the above inbound mail handler that a WRO you create may be split. ie: we created 1 WRO and it was split into 6 more WROs by the ShipBob team, so it's not really possible to link back to your system when that occurs. Also, they have indicated to me there's no link on these WROs or UROs (Unidentified Receiving Orders) that they create. There's no hierarchical relationship with the split WROs they are creating. In other words, you will need to implement polling anyway, so adding this is probably not worthwhile.
 
 # OAuth
 
@@ -279,6 +288,7 @@ const response = await post202601ReceivingSetExternalSync({
 ## Option #2 - Advanced (partial receiving)
 
 - Poll GET WRO endpoint for WROs with statuses "processing" and "completed": https://sandbox-api.shipbob.com/2026-01/receiving?Statuses=Processing,Completed&ExternalSync=false.
+
 ```typescript
 const response = await get202601Receiving({
   query: {
@@ -303,7 +313,7 @@ So, if you have one FC, you can use total_sellable_quantity for each inventory i
 
 For multiple FCs - their recommendation is to use for each FC the fulfillable_quantity and subtract the total_exception_quantity (since it could be assigned to either FC).
 
-You can't do this anymore in `2026-01` - it will require 2 separate API calls inventory-levels and inventory-levels-location.  I'll try to update this - just trying to publish 202601.
+You can't do this anymore in `2026-01` - it will require 2 separate API calls inventory-levels and inventory-levels-location. I'll try to update this - just trying to publish 202601.
 
 ```json
 {
