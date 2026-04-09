@@ -1,3 +1,4 @@
 /dist
-/generated
 /.vscode
+# generated code
+/src/client

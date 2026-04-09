@@ -1,20 +1,19 @@
 # ShipBob Node SDK
 
-Feb 2026 - The various versions of their API are all set to expire soon. They have published a policy (https://developer.shipbob.com/versioning) indicating that future versions will be supported for 12 months from release date and that versions `1.0` and `2.0` are deprecated.
+The ShipBob API is in a state of flux as their 1.0 and 2.0 API versions are set to be deprecated and according to their website their end of support is July 31, 2026 (as of April).
+> After the end-of-support date, legacy versions will no longer be accessible.
 
 First of all there are no official SDKs for ShipBob. I'm just dropping this here, in case it will speed up somebody else getting started using their API.
 
-This library uses the built-in node.js fetch, so you'll want a newer node version with undici support.
-
-This SDK exposes some endpoints not available in the OpenAPI including:
-
+Originally I wrote a library that had endpoints not available in OpenAPI including:
 - `/2.0/receiving-extended`
 - `/2.0/product`
 - `/experimental/product` :skull:
 - `/experimental/receiving` :skull:
 
-As of Nov 2025 the OpenAPI specs (including 2025-07) are available for additional versions:
-[Open API specs](https://developer.shipbob.com/faq#how-can-i-find-openapi-specs-for-each-api-version)
+It was so cumbersome to keep up-to-date and their API versions are set to expire after 1 year, so it only makes sense to use their OpenAPI spec to generate a client.
+
+The nice thing about this lib is that it uses tree-shaking, but it's not as friendly to use as the original version.  You will need to have a "POST" send the `body` and a "GET" will use `query`.  `path` will be needed when a parameter is part of the url.  So, you'll need to refer to the API to be able to use this.
 
 <div align="center">
  <a href="https://www.npmjs.com/package/shipbob-node-sdk">
@@ -32,6 +31,13 @@ npm i shipbob-node-sdk
 yarn add shipbob-node-sdk
 ```
 
+```typescript
+// create your client like this (return object has extra functions/objects)
+const client = await createAPI('<your-token-here>', 'https://sandbox-api.shipbob.com');
+// client is passed automatically
+const productSearch = await get202601Product();
+```
+
 Have a look in the `/test` folder. You might like more something like PostMan, but you can run and debug these "tests" in VS Code. You need a `.env` file like this:
 
 ```bash
@@ -45,140 +51,18 @@ SHIPBOB_WEB_UI_EMAIL=email@company.com
 SHIPBOB_WEB_UI_PASSWORD=<redacted>
 ```
 
-# API implementation progress
+# API implementation
+Everything is implemented except for the `/simulate/*` endpoints, which are not in OpenAPI.  You can look at the `/test/shipbob-api.simulate.spec.ts` to see how to call them.
 
-## Legend
-
-:x: = I haven't needed this
-
-:heavy_check_mark: = implemented
-
-- [ ] = intend to add
-
-:question: = might add support soon - under investigation
-
-## Orders
-
-- :x: Estimate Fulfillment Cost For Order
-- :question: Get Order - don't see the point of this endpoint, unless you store their Ids
-- :heavy_check_mark: Get Orders: api.getOrders(...)
-- :heavy_check_mark: Create Order: api.placeOrder(...)
-- :heavy_check_mark: Cancel single Order by Order ID: api.cancelSingleOrderByOrderId()
-- :x: Get Order Store Json
-- :x: Save the Store Order Json (The JSON that represent the order on the Third Party Source)
-- :heavy_check_mark: Get one Shipment by Order Id and Shipment Id: `api.getOneShipmentByOrderIdAndShipmentId(...)`
-- :x: Cancel one Shipment by Order Id and Shipment Id
-- :x: Get one Shipment's status timeline by Order Id and Shipment Id
-- :question: Get all Shipments for Order
-- :x: Get logs for one Shipment by Order Id and Shipment Id
-- :x: Get one Shipment by Shipment Id
-- :x: Update a Shipment
-- :x: Cancel one Shipment by Shipment Id
-- :x: Cancel multiple Shipments by Shipment Id
-- :x: Get one Shipment's status timeline by Shipment Id
-- :x: Get logs for one Shipment by Shipment Id
-- :heavy_check_mark: Get shipping methods: api.getShippingMethods()
-
-## Shipments
-
-Turns out the webhooks aren't reliable, so polling is needed to get shipment information.
-
-1. `order_shipped` webhook can fire without tracking details
-2. `shipment_delivered` webhook may not be sent. Additionally, exceptions (return to sender) have no webhook.
-
-- :heavy_check_mark: Get one Shipment by Shipment Id: `api.getOneShipment()`
-- :x: Update a Shipment (marked with tracking information uploaded to a third-party system where the order originated)
-- :question: Cancel one Shipment by Shipment Id
-- :x: Cancel multiple Shipments by Shipment Id
-- :x: Get one Shipment's status timeline by Shipment Id
-- :x: Get logs for one Shipment by Shipment Id
-- :heavy_check_mark: Get shipping methods: `api.getShippingMethods()`
-
-## Products 1.0
-
-- :heavy_check_mark: Get multiple products: `api.getProducts1_0(...)`
-- :heavy_check_mark: Add a single product to the store: `api.createProduct1_0(...)`
-- :x: Modify a single product (using 2.0 for additional properties)
-- :x: Add multiple products to the store
-
-## Products 2.0
-
-These are not documented on the site yet:
-
-- :heavy_check_mark: Get multiple products: `api.getProducts2_0(...)`
-- :heavy_check_mark: Add a single product to the store: `api.createProduct2_0(...)`
-- :heavy_check_mark: Modify a single product: `api.updateProducts2_0(...)`
-- :x: Add multiple products to the store
-
-## Products Experimental
-
-Kindly note as it's experimental subject to change/removal :skull:
-
-- :heavy_check_mark: Get multiple products: `api.getProductsExperimental(...)`
-- :heavy_check_mark: Add a single product to the store: `api.createProductExperimental(...)`
-- :heavy_check_mark: Modify a single product: `api.updateProductsExperimental(...)`
-- :x: Add multiple products to the store
-
-## Inventory
-
-- [ ] Get an inventory item
-- :heavy_check_mark: List inventory items: `api.listInventory(...)`
-- :x: Get a list of inventory items by product id (we don't know product_id)
-
-## Channels
-
-- :heavy_check_mark: Get user-authorized channels `api.getChannels()`
-
-**NOTE:** This fails with a web UI scraper account (you need `channels_read` scope)
-
-## Returns
-
-- :question: Get Return Order
-- :question: Modify Return Order
-- :question: Get Return Orders
-- :question: Create Return Order
-- :question: Cancel Return Order
-- :question: Get One Return's status history
-
-## Receiving
-
-- :heavy_check_mark: Get Fulfillment Centers: `api.getFulfillmentCenters()`
-- :heavy_check_mark: Get Warehouse Receiving Order: `api.getWarehouseReceivingOrder(...)`
-- :heavy_check_mark: Get Warehouse Receiving Order Boxes: `api.getWarehouseReceivingOrderBoxes(...)`
-- :x: Get Multiple Warehouse Receiving Orders (using receiving-extended instead)
-- :heavy_check_mark: Create Warehouse Receiving Order: `api.createWarehouseReceivingOrder(...)`
-- :x: Get Warehouse Receiving Order Box Labels
-- :x: Cancel Warehouse Receiving Order (could be done manually, if needed?)
-- :x: 5 x DEPRECATED '/1.0/receiving
-  - Get Warehouse Receiving Order
-  - Get a Warehouse Receiving Order by Purchase Order Number
-  - Create Warehouse Receiving Order
-  - Get Warehouse Receiving Order Box Labels
-  - Cancel Warehouse Receiving Order
-
-## Receiving-Extended (not in API docs)
-
-- :heavy_check_mark: Get Receiving Extended: `api.getReceivingExtended(...)` (will include this in a recipe that uses SetExternalSync)
-
-## Receiving Experimental
-
-Kindly note as it's experimental subject to change/removal :skull:
-
-- :heavy_check_mark: Receiving Set External Sync: `api.experimentalReceivingSetExternalSync(...)`
-
-**NOTE:** See the section below `How to sync WROs` for some guidance.
+I'll probably look at a way to have the client creation pick up the library version using a factory.  To start it's only `2026-01` version.
 
 ## Webhooks
-
-- :heavy_check_mark: Get Webhooks: `api.getWebhooks()`
-- :heavy_check_mark: Create a new webhook subscription: `api.registerWebhookSubscription(...)`
-- :heavy_check_mark: Delete an existing webhook subscription: `api.unregisterWebhookSubscription(...)`
 
 As a personal note. I regret implementing webhooks at all, since I needed to implement polling anyway. There are various gaps in the webhooks. Using their table is perhaps the best way to explain:
 
 | Shipment Status | Status Detail Name | Comment                                                                                         |
 | --------------- | ------------------ | ----------------------------------------------------------------------------------------------- |
-| Processing      | Labeled            | I think this maps to "order_shipped" webhook, doesn't always have tracking (or invoice amounts) |
+| Processing      | Labeled            | I think this maps to "order.shipped" webhook, doesn't always have tracking (or invoice amounts) |
 | Completed       | Delivered          | Does not always fire when delivered (seems to be carrier dependent)                             |
 | Completed       | Delivery Exception | No Webhook (need to poll for RTS, etc.)                                                         |
 | Exception       | \*                 | These do fire, but are not useful for delivery                                                  |
@@ -187,35 +71,42 @@ ie: No webhooks for delivery exceptions ie: `Completed` -> `DeliveryException` w
 
 Partial rows of table from here: _(https://developer.shipbob.com/#shipment-statuses)_
 
-## Locations
-
-- :x: Get locations
+The typings of webhooks - i'll try to update those. It's basically an order and the status is known.  For some bizarre reason receiving has no webhooks.
 
 ## Follow URIs
 
 This is not part of the API, but instead allows you to follow URI's returned in the API (see tests for examples). They use some kind of HATEOAS, but it's inconsistent across API versions.
 
-- :heavy_check_mark: Retrive a path from a provided resource ie: header `next-page`: `api.getPath<T>(response.headers['next-page'])`
+:heavy_check_mark: Ols API versions retrieve a path from a provided resource ie: header `next-page`: `api.getPath<T>(response.headers['next-page'])`
 
+latest version is part of JSON response:
+```typescript
+import { createAPI } from 'shipbob-node-sdk';
+import { get202601Product } from 'shipbob-node-sdk/dist/client/2026-01';
+import { type Get202601ProductResponses, type Get202601ProductErrors} from 'shipbob-node-sdk/dist/client/2026-01/types.gen';
+
+const client = await createAPI('<your-token-here>', 'https://sandbox-api.shipbob.com', undefined, {
+  logTraffic: true,
+});
+const productSearch = await get202601Product();
+assert.ok(productSearch.data, 'should have data');
+const { next } = productSearch.data;
+assert.ok(next !== null && next !== undefined, 'should have more pages');
+// you can get these types by clicking ie: `get202601Product` function and look at typings parameters.
+const pagedResult = await client.get<Get202601ProductResponses, Get202601ProductErrors>(next);
+assert.ok(pagedResult.data, 'should have paged data');
+```
 # Building locally
 
 For making changes to this library locally - use `yarn link` to test out the changes easily. This is useful if you would like to contribute.
+If you don't want an NPM dependency, it's easy to generate this yourself from OpenAPI spec and then just copy the index.ts file to your project.
 
-# Other options
-
-Not really sure anybody will ever need this as many common platforms probably have integrations. There are a couple of other community SDKs. They do not have `/2.0/*` or `/experimental/*` endpoints:
-
-- [shipbob-sdk-python](https://github.com/community-phone-company/shipbob-sdk-python)
-- [shipbob-go](https://github.com/stryd/shipbob-go) - generated from Open API
-
-NOTE: I did not notice until all this code was written that ShipBob had published an Open API spec :facepunch:. You may have better luck generating your own client. Maybe those generated typings at least belong here.
+NOTE: I did not notice until I had written a custom implementation that ShipBob had published an Open API spec :facepunch:.
 
 ```bash
-$ yarn generate:client
+# this is how the clients are generated (see scripts in package.json)
+$ yarn generate:2026-01
 ```
-
-The included script using OpenAPI can generate clients in various languages.
-
 # Testing
 
 You can fake out this library itself, or otherwise mocking the ShipBob API http calls are quite easy to simulate with `nock`. Here's a way to test creating an order verifying idempotent operation.
@@ -288,7 +179,7 @@ for (const event of events) {
 
 You can publish that as an event or push to a queue and it will act as a "webhook".
 
-**NOTE:** I discovered after writing the above inbound mail handler that a WRO you create may be split. ie: we created 1 WRO and it was split into 6 more WROs by the ShipBob team, so it's not really possible to link back to your system when that occurs. There's no hierarchical relationship with the split WROs they are creating. I believe UROs (Unidentified Receiving Orders) may have same behaviour. In other words, you will need to implement polling anyway, so adding this is probably not worthwhile.
+**NOTE:** I discovered after writing the above inbound mail handler that a WRO you create may be split. ie: we created 1 WRO and it was split into 6 more WROs by the ShipBob team, so it's not really possible to link back to your system when that occurs.  Also, they have indicated to me there's no link on these WROs or UROs  (Unidentified Receiving Orders) that they create. There's no hierarchical relationship with the split WROs they are creating. In other words, you will need to implement polling anyway, so adding this is probably not worthwhile.
 
 # OAuth
 
@@ -311,6 +202,8 @@ There is no documentation for these extra APIs - you can look through network tr
 
 ```typescript
 // scrape web.shipbob.com website:
+import { getAccessTokenUI } from 'shipbob-node-sdk';
+
 const authResponse = await getAccessTokenUI({
   email,
   password,
@@ -329,21 +222,22 @@ const inventoryListResponse = await webUIAPI.listInventory({ Ids: [20104984] });
 
 This is a suggested way to track orders from ShipBob. This may be better than using the webhook, sometimes the `order_shipped` webhook fires with no tracking information.
 
-1. Poll GET `/1.0/order?HasTracking=true&IsTrackingUploaded=false&startDate=03-25-2025`
+1. Poll GET `/2026-01/order?HasTracking=true&IsTrackingUploaded=false&startDate=03-25-2025`
 
 ```typescript
-const results = await api.getOrders({
-  HasTracking: true,
-  IsTrackingUploaded: false,
-  StartDate: '03-25-2025',
+// right now for me I get error "An unexpected database error occurred. Please try again later", but it worked on 1.0 API
+const result = await get202601Order({
+  query: {
+    HasTracking: true,
+    IsTrackingUploaded: false,
+    StartDate: '2025-03-25T14:15:22Z',
+  },
 });
 ```
 
 2. Iterate through each order (and each shipment)
 3. Sync the tracking back to your platform
 4. Mark the order as shipped using this endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1%7BshipmentId%7D/put). Or, you can mark it as shipped using the bulk mark as shipped endpoint (https://developer.shipbob.com/api-docs/#tag/Orders/paths/~11.0~1shipment~1:bulkUpdateTrackingUpload/post).
-
-**NOTE:** `PUT`/`POST` to `/1.0/shipment` not implemented in this library yet.
 
 # How to sync WROs
 
@@ -352,13 +246,17 @@ Syncing WROs (Warehouse Receiving Orders) back to your system has 2 options.
 ## Option #1 - Simple (wait until the WRO status is Completed)
 
 - Poll our GET WRO endpoint for WROs in Completed status:
-  GET https://sandbox-api.shipbob.com/2.0/receiving-extended?Statuses=Completed&ExternalSync=false
+  GET https://sandbox-api.shipbob.com/2026-01/receiving?Statuses=Completed&ExternalSync=false
 
 ```typescript
-// with this library
-const results = await api.getReceivingExtended({
-  Statuses: 'Completed',
-  ExternalSync: false,
+/**
+ * this was /2.0/receiving-extended
+ */
+const response = await get202601Receiving({
+  query: {
+    Statuses: 'Completed',
+    ExternalSync: false,
+  },
 });
 ```
 
@@ -368,28 +266,31 @@ const results = await api.getReceivingExtended({
 
 Mark the WRO as synced (this is optional and a alternative option to continuously polling completed WROs that you may or may not know you have already synced)
 
-POST https://sandbox-api.shipbob.com/experimental/receiving/:set-external-sync
-
-```json
-{
-  "ids": [442946],
-  "is_external_sync": true
-}
-```
-
 ```typescript
-// with this library
 // use Ids from "getReceivingExtended" with ExternalSync: false.
-const results = await api.experimentalReceivingSetExternalSync([443001], true);
+const response = await post202601ReceivingSetExternalSync({
+  body: {
+    ids: [918363],
+    is_external_sync: true,
+  },
+});
 ```
 
 ## Option #2 - Advanced (partial receiving)
 
-- Poll our GET WRO endpoint for WROs with statuses "processing" and "completed": https://sandbox-api.shipbob.com/2.0/receiving-extended?Statuses=Processing,Completed&ExternalSync=false.
+- Poll GET WRO endpoint for WROs with statuses "processing" and "completed": https://sandbox-api.shipbob.com/2026-01/receiving?Statuses=Processing,Completed&ExternalSync=false.
+```typescript
+const response = await get202601Receiving({
+  query: {
+    Statuses: 'Processing',
+    ExternalSync: false,
+  },
+});
+```
 
 **Note:** When initially testing you can remove the statuses from the query params, and you will see the default status of "AwaitingArrival" whenever a WRO is created. There is no sandbox simulation to move these forward.
 
-- For each WRO, make a request to the Get Warehouse Receiving Order Boxes endpoint: https://sandbox-api.shipbob.com/2.0/receiving/442997/boxes
+- For each WRO, make a request to the Get Warehouse Receiving Order Boxes endpoint: https://sandbox-api.shipbob.com/2026-01/receiving/442997/boxes
 - Iterate through each box
 - Iterate through each item in the box_items array
 - Sync the stowed_quantity for each item back to your system
@@ -401,6 +302,8 @@ There are no webhooks or easy way to sync. Plus once you place an order there is
 So, if you have one FC, you can use total_sellable_quantity for each inventory item.
 
 For multiple FCs - their recommendation is to use for each FC the fulfillable_quantity and subtract the total_exception_quantity (since it could be assigned to either FC).
+
+You can't do this anymore in `2026-01` - it will require 2 separate API calls inventory-levels and inventory-levels-location.  I'll try to update this - just trying to publish 202601.
 
 ```json
 {

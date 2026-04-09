@@ -27,17 +27,21 @@ export type Credentials = {
  * Attempt to login and return an auth token (that can in turn be used to access API)
  */
 const loginShipBob = async (page: Page, credentials: Credentials, waitTimoutInSeconds = 30): Promise<AuthResponse> => {
-  // hopefully this doesn't change!
-  await page.goto('https://web.shipbob.com/app/Merchant/#/Login', {
+  // this page has both email/username + password!
+  await page.goto('https://web.shipbob.com', {
     timeout: 0, // no timeout - it's a slow page
   });
 
-  await page.waitForNavigation({ waitUntil: 'networkidle0' });
+  // await page.waitForNavigation({ waitUntil: 'networkidle0' });
   await page.waitForSelector('input[name=Username]');
 
   // <input name="Username" type="email" data-sb-automation="username-input" ...>
   await page.type('input[name=Username]', credentials.email);
-  // await page.type('input[type="password"]', password);
+
+  await page.click('#login-button');
+  console.log(' > Login clicked first time (checking SSO - waiting for password input)');
+
+  await page.waitForSelector('input[name=Password]');
   // <input name="Password" id="password-input" type="password" data-sb-automation="password-input">
   await page.type('input[name=Password]', credentials.password);
 
@@ -123,7 +127,7 @@ const loginShipBob = async (page: Page, credentials: Credentials, waitTimoutInSe
 
     // kick off login process - navigation listeners are already registered
     Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#login-button')]).then(() => {
-      console.log(' > Login clicked (interceptors are running)');
+      console.log(' > Login clicked second time (interceptors are running)');
     });
   });
 

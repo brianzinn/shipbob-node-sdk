@@ -1,34 +1,31 @@
 {
   "name": "shipbob-node-sdk",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "ShipBob API node SDK",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "prebuild": "rimraf dist && eslint . --ignore-pattern generated/ && prettier \"**/*.ts\" --check",
+    "prebuild": "rimraf dist && prettier \"**/*.ts\" --check",
     "build": "tsc",
     "lint": "eslint . --ignore-pattern generated/",
     "prettier:write": "prettier \"**/*.ts\" \"*.md\" --write",
-    "generate:client": "openapi-generator-cli generate -i openapi.json -g typescript -o generated/openapi --additional-properties=npmName=restClient,supportsES6=true,withInterfaces=true",
+    "generate:2026-01": "rimraf src/client/2026-01 && openapi-ts -i openapi-2026-01.json -o src/client/2026-01",
+    "generate:2025-07": "rimraf src/client/2025-07 && openapi-ts -i openapi-2025-07.json -o src/client/2025-07",
     "test": "mocha"
   },
   "author": "Brian Zinn",
   "license": "ISC",
   "devDependencies": {
-    "@eslint/js": "^9.20.0",
-    "@openapitools/openapi-generator-cli": "^2.16.3",
+    "@hey-api/openapi-ts": "0.95.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20",
     "dotenv": "^16.4.7",
-    "eslint": "^9.20.1",
     "mocha": "^11.1.0",
     "prettier": "^3.5.1",
     "puppeteer": "^24.5.0",
     "rimraf": "^6.0.1",
-    "tsx": "^4.19.3",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.24.1"
+    "typescript": "^5.7.3"
   },
   "peerDependencies": {
     "puppeteer": ">=22"
