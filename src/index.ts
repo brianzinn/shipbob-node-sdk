@@ -171,6 +171,7 @@ export const createAPI = async (
 
   // allows caller to alter options after API creation (same instance)
   return {
+    channel: selectedChannel,
     options,
     /**
      *

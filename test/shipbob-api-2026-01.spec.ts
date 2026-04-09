@@ -302,7 +302,7 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
     // const order: Omit<Options<Post202601OrderData, false>, 'headers'> = {
     const order: Options<Post202601OrderData, false> = {
       headers: {
-        shipbob_channel_id: '---',
+        shipbob_channel_id: '---', // client.channel.id for production
       },
       body: {
         shipping_method: 'Standard',
@@ -372,7 +372,7 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
   it.skip('shipbob API: place an order', async function test() {
     const results = await post202601Order({
       headers: {
-        shipbob_channel_id: 'test',
+        shipbob_channel_id: 'test', // client.channel.id for production
       },
       body: {
         order_number: 'TEST2',
