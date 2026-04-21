@@ -18,6 +18,7 @@ import {
   get202601ShippingMethod,
   get202601Webhook,
   Options,
+  post202601InventoryHistoryQuery,
   post202601Order,
   post202601OrderByOrderIdCancel,
   post202601Product,
@@ -149,8 +150,10 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
       query: {
         Statuses: 'Completed',
         ExternalSync: false,
+        // IDs: '914375,929931,152470'
       },
     });
+
     assert.ok(response.data, 'should succeed');
     assert.deepEqual({}, response.data, 'this will never match');
   });
@@ -273,13 +276,13 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
     assert.strictEqual(result.data.status, 'Completed', 'should be marked as "Completed"');
   });
 
-  // An unexpected database error occurred. Please try again later
   it('search orders', async function test() {
     const result = await get202601Order({
       query: {
         HasTracking: true,
         IsTrackingUploaded: false,
         StartDate: '2025-03-25T14:15:22Z',
+        // Limit: 250 (default is 50)
       },
     });
     assert.ok(result.data, 'should succeed');
@@ -302,7 +305,7 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
     // const order: Omit<Options<Post202601OrderData, false>, 'headers'> = {
     const order: Options<Post202601OrderData, false> = {
       headers: {
-        shipbob_channel_id: '---', // client.channel.id for production
+        shipbob_channel_id: '', // client.channel!.id!.toString(),
       },
       body: {
         shipping_method: 'Standard',
@@ -325,8 +328,8 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
             quantity: 1,
           },
         ],
-        reference_id: '112',
-        order_number: '112',
+        reference_id: '113',
+        order_number: '113',
         type: 'DTC',
       },
     };
@@ -372,14 +375,14 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
   it.skip('shipbob API: place an order', async function test() {
     const results = await post202601Order({
       headers: {
-        shipbob_channel_id: 'test', // client.channel.id for production
+        shipbob_channel_id: 'fail', // client.channel!.id!.toString() // for production
       },
       body: {
-        order_number: 'TEST2',
+        order_number: 'TEST-123',
         products: [
           {
             name: 'suddenly we need this',
-            reference_id: '100',
+            reference_id: '782926549145',
             quantity: 1,
           },
         ],
@@ -395,17 +398,13 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
           },
           email: null,
         },
-        retailer_program_data: {
-          purchase_order_number: 'TEST2',
-          retailer_program_type: 'TEST',
-        },
-        reference_id: 'TEST2',
+        reference_id: 'TEST-123',
         shipping_method: 'Standard',
         shipping_terms: {
           carrier_type: 'Parcel',
           payment_term: 'Prepaid',
         },
-        type: 'DropShip',
+        type: 'DTC',
       },
     });
     assert.ok(results.data, 'should succeed');
@@ -413,8 +412,8 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
     assert.strictEqual(1, results.data, 'should have created an order');
   });
 
-  it('get products', async function test() {
-    const skuList = ['730822604864', '730822604796'];
+  it(' get products', async function test() {
+    const skuList = ['782926549145', '730822604864', '730822604796'];
 
     const { data, error } = await get202601Product({
       query: {
@@ -453,7 +452,7 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
   });
 
   it('get inventory for a SKU - logic for per FC inventory', async function test() {
-    const skuList = ['730822604864', '730822604796', '824442849719'];
+    const skuList = ['846566843435'];
     const productSearch = await get202601Product({
       query: { SKU: `any:${skuList.join(',')}` },
     });
@@ -528,43 +527,185 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
       }
     }
 
-    assert.deepEqual(
-      products,
-      [
-        {
-          sku: '730822604864',
-          inventoryId: 21705372,
-          exceptionQuantity: 0,
-          fulfillmentCenters: [],
+    assert.strictEqual(products.length, 2164);
+  });
+
+  // this can use a lot of your rate limit quota
+  it.skip('get products (paging all, detect duplicate UPCs)', async function test() {
+    const LIMIT = 250;
+    const api = client;
+
+    type UpcInventoryTuple = {
+      upc: string;
+      inventoryId: number;
+    };
+
+    const productsInventoryTuple: UpcInventoryTuple[] = [];
+    const getCountsByUpc = () => {
+      return productsInventoryTuple.reduce<Record<string, number>>((prev, cur) => {
+        if (cur.upc in prev) {
+          prev[cur.upc] += 1;
+        } else {
+          prev[cur.upc] = 1;
+        }
+        return prev;
+      }, {});
+    };
+
+    type ProductData = Awaited<ReturnType<typeof get202601Product>>['data'];
+
+    const addItems = (productData: ProductData): void => {
+      if (productData === undefined) {
+        return;
+      }
+
+      const items = productData.items;
+      if (items === undefined || items === null) {
+        return;
+      }
+
+      productsInventoryTuple.push(
+        ...items.map((i) => {
+          const variants = i.variants;
+          if (variants === undefined || variants === null || variants.length !== 1) {
+            throw new Error(`Unexpected product without a single variant: ${i.id} has ${variants?.length} variants`);
+          }
+
+          const firstVariant = variants[0];
+
+          if (firstVariant.inventory?.inventory_id === undefined || firstVariant.sku === undefined) {
+            throw new Error(`Unexpected product missing inventory id or SKU: ${i.id}/${firstVariant.name}`);
+          }
+
+          return {
+            inventoryId: variants[0].inventory!.inventory_id!,
+            upc: variants[0].sku!,
+          };
+        })
+      );
+    };
+
+    const firstPageResult = await get202601Product({
+      query: {
+        // SKU: '846566843435',
+        PageSize: LIMIT.toString(),
+      },
+    });
+    if (firstPageResult.data) {
+      addItems(firstPageResult.data);
+
+      let next = firstPageResult.data.next;
+
+      while (next) {
+        const nextPageResult = await api.get<Get202601ProductResponses, Get202601ProductErrors>(next);
+
+        if (nextPageResult.data) {
+          next = nextPageResult.data.next;
+          addItems(nextPageResult.data);
+        } else {
+          throw new Error(`status: ${nextPageResult.response.status}.  failed to retrieve page: ${next}'`);
+        }
+      }
+    } else {
+      throw new Error(`status: ${firstPageResult.response.status}.  failed to retrieve first page`);
+    }
+
+    // log duplicates - their API has had broken paging in the past, so some of our inventory was not updating.
+    const counts = getCountsByUpc();
+    Object.keys(counts).forEach((upc) => {
+      if (counts[upc] !== 1) {
+        console.error(` > found UPC '${upc}' ${counts[upc]} times.`);
+      }
+    });
+
+    // assert.strictEqual(2164, productsInventoryTuple.length, 'should have all products');
+
+    // now to add the inventory levels.
+    type FulfillmentCenterLocation = NonNullable<
+      NonNullable<
+        NonNullable<Awaited<ReturnType<typeof get202601InventoryLevelLocations>>['data']>['items']
+      >[number]['locations']
+    >[number];
+
+    type ProductInventory = {
+      upc: string;
+      inventoryId: number;
+      exceptionQuantity: number;
+      fulfillmentCenters: {
+        id: number;
+        onHand: number;
+        reserved: number;
+        raw: FulfillmentCenterLocation;
+      }[];
+    };
+
+    const productsInventory: ProductInventory[] = productsInventoryTuple.map((p) => ({
+      upc: p.upc,
+      inventoryId: p.inventoryId,
+      exceptionQuantity: 0,
+      fulfillmentCenters: [],
+    }));
+
+    const inventoryIds = productsInventory.map((p) => p.inventoryId);
+
+    // the API limits how many InventoryIds can be queried at once - batch them.
+    const BATCH_SIZE = 150;
+    for (let i = 0; i < inventoryIds.length; i += BATCH_SIZE) {
+      const batch = inventoryIds.slice(i, i + BATCH_SIZE);
+
+      const inventoryLevelResponse = await get202601InventoryLevel({
+        query: {
+          InventoryIds: batch.join(','),
+          PageSize: BATCH_SIZE.toString(),
         },
-        {
-          sku: '730822604796',
-          inventoryId: 21705365,
-          exceptionQuantity: 0,
-          fulfillmentCenters: [
-            {
-              availableQuantity: 0,
-              id: 1,
-            },
-          ],
+      });
+
+      const inventoryLevelItems = inventoryLevelResponse.data?.items;
+      assert.ok(inventoryLevelItems, `should have inventory level items (batch starting at ${i})`);
+
+      console.log('inventoryLevelItems.length:', inventoryLevelItems.length);
+      for (const inventoryLevel of inventoryLevelItems) {
+        const product = productsInventory.find((p) => p.inventoryId === inventoryLevel.inventory_id);
+        assert.ok(product, 'should always find a product (not vice-versa)');
+        assert.ok(
+          inventoryLevel.total_exception_quantity !== undefined,
+          'should have an exception quantity (zero is falsey)'
+        );
+        product.exceptionQuantity = inventoryLevel.total_exception_quantity;
+      }
+
+      const inventoryLevelLocationsResponse = await get202601InventoryLevelLocations({
+        query: {
+          InventoryIds: batch.join(','),
+          PageSize: BATCH_SIZE.toString(),
         },
-        {
-          sku: '824442849719',
-          inventoryId: 21705190,
-          exceptionQuantity: 0,
-          fulfillmentCenters: [
-            {
-              availableQuantity: 0,
-              id: 2,
-            },
-            {
-              availableQuantity: 23,
-              id: 1,
-            },
-          ],
-        },
-      ],
-      'should match exactly'
+      });
+
+      const inventoryLevelLocationsItems = inventoryLevelLocationsResponse.data?.items;
+      assert.ok(inventoryLevelLocationsItems, `should have location items (batch starting at ${i})`);
+
+      for (const inventoryLevelLocation of inventoryLevelLocationsItems) {
+        const product = productsInventory.find((p) => p.inventoryId === inventoryLevelLocation.inventory_id);
+        assert.ok(product, 'should find a product always');
+        assert.ok(inventoryLevelLocation.locations, 'should have locations');
+
+        for (const fc of inventoryLevelLocation.locations) {
+          assert.ok(fc.location_id, 'should have a location id');
+          const onHand = (fc.on_hand_quantity ?? 0) + (fc.internal_transfer_quantity ?? 0);
+          const reserved = (fc.committed_quantity ?? 0) + product.exceptionQuantity;
+          product.fulfillmentCenters.push({
+            id: fc.location_id,
+            onHand,
+            reserved,
+            raw: fc,
+          });
+        }
+      }
+    }
+
+    const withInventory = productsInventory.filter((p) => p.fulfillmentCenters.length > 0 || p.exceptionQuantity > 0);
+    console.log(
+      ` > ${withInventory.length} / ${productsInventory.length} products have inventory at an FC or exceptions`
     );
   });
 
@@ -709,5 +850,33 @@ describe(' > ShipBob API 2026-01 tests', function shipBobAPI202601Tests() {
       console.log('update result:', updateResult);
       assert.ok(updateResult.data);
     }
+  });
+
+  it('search inventory audit', async function test() {
+    const result = await post202601InventoryHistoryQuery({
+      query: {
+        cursor: '378492096',
+      },
+      body: {
+        facility_id: 211,
+        cursor: 378492096,
+        event_category: '',
+      },
+    });
+    assert.ok(result.data, 'should succeed');
+    assert.strictEqual(200, result.response.status, 'expected an OK status code');
+    assert.strictEqual(250, result.data.data?.length, 'current list mismatch');
+
+    const maxAuditEventId = result.data.data?.reduce(
+      (max, item) => ((item.inventory_audit_event_id ?? 0) > (max ?? 0) ? item.inventory_audit_event_id : max),
+      result.data.data[0]?.inventory_audit_event_id
+    );
+    console.log('highest inventory_audit_event_id:', maxAuditEventId);
+
+    const notPicked = result.data.data
+      ?.filter((d) => d.event_category !== 'OrderPicked')
+      ?.sort((a, b) => (a.inventory_audit_event_id ?? 0) - (b.inventory_audit_event_id ?? 0));
+
+    assert.ok(notPicked && notPicked.length !== 0, 'all picked?');
   });
 });

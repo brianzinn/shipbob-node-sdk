@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { Delete202601ProductByProductIdData, Delete202601ProductByProductIdErrors, Delete202601ProductByProductIdResponses, Delete202601WebhookByIdData, Delete202601WebhookByIdErrors, Delete202601WebhookByIdResponses, Get202601ChannelData, Get202601ChannelErrors, Get202601ChannelResponses, Get202601FulfillmentCenterData, Get202601FulfillmentCenterErrors, Get202601FulfillmentCenterResponses, Get202601InventoryByInventoryIdData, Get202601InventoryByInventoryIdErrors, Get202601InventoryByInventoryIdResponses, Get202601InventoryData, Get202601InventoryErrors, Get202601InventoryLevelByInventoryIdData, Get202601InventoryLevelByInventoryIdErrors, Get202601InventoryLevelByInventoryIdLocationsData, Get202601InventoryLevelByInventoryIdLocationsErrors, Get202601InventoryLevelByInventoryIdLocationsResponses, Get202601InventoryLevelByInventoryIdLotsData, Get202601InventoryLevelByInventoryIdLotsErrors, Get202601InventoryLevelByInventoryIdLotsResponses, Get202601InventoryLevelByInventoryIdResponses, Get202601InventoryLevelData, Get202601InventoryLevelErrors, Get202601InventoryLevelLocationsData, Get202601InventoryLevelLocationsErrors, Get202601InventoryLevelLocationsResponses, Get202601InventoryLevelLotsData, Get202601InventoryLevelLotsErrors, Get202601InventoryLevelLotsResponses, Get202601InventoryLevelResponses, Get202601InventoryResponses, Get202601InvoicesByInvoiceIdTransactionsData, Get202601InvoicesByInvoiceIdTransactionsErrors, Get202601InvoicesByInvoiceIdTransactionsResponses, Get202601InvoicesData, Get202601InvoicesErrors, Get202601InvoicesResponses, Get202601LocationData, Get202601LocationErrors, Get202601LocationResponses, Get202601OrderByOrderIdData, Get202601OrderByOrderIdErrors, Get202601OrderByOrderIdResponses, Get202601OrderByOrderIdShipmentByShipmentIdData, Get202601OrderByOrderIdShipmentByShipmentIdErrors, Get202601OrderByOrderIdShipmentByShipmentIdLogsData, Get202601OrderByOrderIdShipmentByShipmentIdLogsErrors, Get202601OrderByOrderIdShipmentByShipmentIdLogsResponses, Get202601OrderByOrderIdShipmentByShipmentIdResponses, Get202601OrderByOrderIdShipmentByShipmentIdTimelineData, Get202601OrderByOrderIdShipmentByShipmentIdTimelineErrors, Get202601OrderByOrderIdShipmentByShipmentIdTimelineResponses, Get202601OrderByOrderIdShipmentData, Get202601OrderByOrderIdShipmentErrors, Get202601OrderByOrderIdShipmentResponses, Get202601OrderByOrderIdStoreOrderJsonData, Get202601OrderByOrderIdStoreOrderJsonErrors, Get202601OrderByOrderIdStoreOrderJsonResponses, Get202601OrderData, Get202601OrderErrors, Get202601OrderResponses, Get202601PackagingRequirementData, Get202601PackagingRequirementResponses, Get202601ProductByProductIdData, Get202601ProductByProductIdErrors, Get202601ProductByProductIdResponses, Get202601ProductByProductIdVariantsData, Get202601ProductByProductIdVariantsErrors, Get202601ProductByProductIdVariantsResponses, Get202601ProductData, Get202601ProductErrors, Get202601ProductResponses, Get202601ReceivingByIdBoxesData, Get202601ReceivingByIdBoxesErrors, Get202601ReceivingByIdBoxesResponses, Get202601ReceivingByIdData, Get202601ReceivingByIdDistributionsData, Get202601ReceivingByIdDistributionsErrors, Get202601ReceivingByIdDistributionsResponses, Get202601ReceivingByIdErrors, Get202601ReceivingByIdLabelsData, Get202601ReceivingByIdLabelsErrors, Get202601ReceivingByIdLabelsResponses, Get202601ReceivingByIdResponses, Get202601ReceivingData, Get202601ReceivingErrors, Get202601ReceivingResponses, Get202601ReturnByIdData, Get202601ReturnByIdErrors, Get202601ReturnByIdResponses, Get202601ReturnData, Get202601ReturnErrors, Get202601ReturnResponses, Get202601ShipmentByShipmentIdData, Get202601ShipmentByShipmentIdErrors, Get202601ShipmentByShipmentIdLogsData, Get202601ShipmentByShipmentIdLogsErrors, Get202601ShipmentByShipmentIdLogsResponses, Get202601ShipmentByShipmentIdResponses, Get202601ShipmentByShipmentIdTimelineData, Get202601ShipmentByShipmentIdTimelineErrors, Get202601ShipmentByShipmentIdTimelineResponses, Get202601ShippingMethodData, Get202601ShippingMethodErrors, Get202601ShippingMethodResponses, Get202601TaxonomyByIdData, Get202601TaxonomyByIdErrors, Get202601TaxonomyByIdParentData, Get202601TaxonomyByIdParentErrors, Get202601TaxonomyByIdParentResponses, Get202601TaxonomyByIdResponses, Get202601TaxonomyData, Get202601TaxonomyErrors, Get202601TaxonomyResponses, Get202601TransactionFeesData, Get202601TransactionFeesErrors, Get202601TransactionFeesResponses, Get202601WebhookData, Get202601WebhookErrors, Get202601WebhookResponses, Patch202601ProductByProductIdData, Patch202601ProductByProductIdResponses, Patch202601ProductByProductIdVariantsData, Patch202601ProductByProductIdVariantsResponses, Post202601InventoryHistoryQueryData, Post202601InventoryHistoryQueryResponses, Post202601OrderByOrderIdCancelData, Post202601OrderByOrderIdCancelErrors, Post202601OrderByOrderIdCancelResponses, Post202601OrderByOrderIdShipmentByShipmentIdCancelData, Post202601OrderByOrderIdShipmentByShipmentIdCancelErrors, Post202601OrderByOrderIdShipmentByShipmentIdCancelResponses, Post202601OrderData, Post202601OrderErrors, Post202601OrderEstimateData, Post202601OrderEstimateErrors, Post202601OrderEstimateResponses, Post202601OrderResponses, Post202601ProductByProductIdMoveVariantsData, Post202601ProductByProductIdMoveVariantsErrors, Post202601ProductByProductIdMoveVariantsResponses, Post202601ProductByProductIdVariantsData, Post202601ProductByProductIdVariantsResponses, Post202601ProductData, Post202601ProductMoveVariantsData, Post202601ProductMoveVariantsErrors, Post202601ProductMoveVariantsResponses, Post202601ProductResponses, Post202601ReceivingByIdCancelData, Post202601ReceivingByIdCancelErrors, Post202601ReceivingByIdCancelResponses, Post202601ReceivingData, Post202601ReceivingErrors, Post202601ReceivingResponses, Post202601ReceivingSetExternalSyncData, Post202601ReceivingSetExternalSyncErrors, Post202601ReceivingSetExternalSyncResponses, Post202601ReturnByIdCancelData, Post202601ReturnByIdCancelErrors, Post202601ReturnByIdCancelResponses, Post202601ReturnData, Post202601ReturnErrors, Post202601ReturnResponses, Post202601ShipmentBatchCancelData, Post202601ShipmentBatchCancelErrors, Post202601ShipmentBatchCancelResponses, Post202601ShipmentBatchUpdateTrackingUploadData, Post202601ShipmentBatchUpdateTrackingUploadErrors, Post202601ShipmentBatchUpdateTrackingUploadResponses, Post202601ShipmentByShipmentIdCancelData, Post202601ShipmentByShipmentIdCancelErrors, Post202601ShipmentByShipmentIdCancelResponses, Post202601TransactionsQueryData, Post202601TransactionsQueryErrors, Post202601TransactionsQueryResponses, Post202601VariantByVariantIdConvertToBundleData, Post202601VariantByVariantIdConvertToBundleResponses, Post202601VariantByVariantIdMergeData, Post202601VariantByVariantIdMergeResponses, Post202601WebhookData, Post202601WebhookErrors, Post202601WebhookResponses, Put202601ReturnByIdData, Put202601ReturnByIdErrors, Put202601ReturnByIdResponses } from './types.gen';
+import type { Delete202601ProductByProductIdData, Delete202601ProductByProductIdErrors, Delete202601ProductByProductIdResponses, Delete202601WebhookByIdData, Delete202601WebhookByIdErrors, Delete202601WebhookByIdResponses, Get202601ChannelData, Get202601ChannelErrors, Get202601ChannelResponses, Get202601FulfillmentCenterData, Get202601FulfillmentCenterErrors, Get202601FulfillmentCenterResponses, Get202601InventoryByInventoryIdData, Get202601InventoryByInventoryIdErrors, Get202601InventoryByInventoryIdResponses, Get202601InventoryData, Get202601InventoryErrors, Get202601InventoryLevelByInventoryIdData, Get202601InventoryLevelByInventoryIdErrors, Get202601InventoryLevelByInventoryIdLocationsData, Get202601InventoryLevelByInventoryIdLocationsErrors, Get202601InventoryLevelByInventoryIdLocationsResponses, Get202601InventoryLevelByInventoryIdLotsData, Get202601InventoryLevelByInventoryIdLotsErrors, Get202601InventoryLevelByInventoryIdLotsResponses, Get202601InventoryLevelByInventoryIdResponses, Get202601InventoryLevelData, Get202601InventoryLevelErrors, Get202601InventoryLevelLocationsData, Get202601InventoryLevelLocationsErrors, Get202601InventoryLevelLocationsResponses, Get202601InventoryLevelLotsData, Get202601InventoryLevelLotsErrors, Get202601InventoryLevelLotsResponses, Get202601InventoryLevelResponses, Get202601InventoryResponses, Get202601InvoicesByInvoiceIdTransactionsData, Get202601InvoicesByInvoiceIdTransactionsErrors, Get202601InvoicesByInvoiceIdTransactionsResponses, Get202601InvoicesData, Get202601InvoicesErrors, Get202601InvoicesResponses, Get202601LocationData, Get202601LocationErrors, Get202601LocationResponses, Get202601OrderByOrderIdData, Get202601OrderByOrderIdErrors, Get202601OrderByOrderIdResponses, Get202601OrderByOrderIdShipmentByShipmentIdData, Get202601OrderByOrderIdShipmentByShipmentIdErrors, Get202601OrderByOrderIdShipmentByShipmentIdLogsData, Get202601OrderByOrderIdShipmentByShipmentIdLogsErrors, Get202601OrderByOrderIdShipmentByShipmentIdLogsResponses, Get202601OrderByOrderIdShipmentByShipmentIdResponses, Get202601OrderByOrderIdShipmentByShipmentIdTimelineData, Get202601OrderByOrderIdShipmentByShipmentIdTimelineErrors, Get202601OrderByOrderIdShipmentByShipmentIdTimelineResponses, Get202601OrderByOrderIdShipmentData, Get202601OrderByOrderIdShipmentErrors, Get202601OrderByOrderIdShipmentResponses, Get202601OrderByOrderIdStoreOrderJsonData, Get202601OrderByOrderIdStoreOrderJsonErrors, Get202601OrderByOrderIdStoreOrderJsonResponses, Get202601OrderData, Get202601OrderErrors, Get202601OrderResponses, Get202601PackagingRequirementData, Get202601PackagingRequirementResponses, Get202601ProductByProductIdData, Get202601ProductByProductIdErrors, Get202601ProductByProductIdResponses, Get202601ProductByProductIdVariantsData, Get202601ProductByProductIdVariantsErrors, Get202601ProductByProductIdVariantsResponses, Get202601ProductData, Get202601ProductErrors, Get202601ProductResponses, Get202601ReceivingByIdBoxesData, Get202601ReceivingByIdBoxesErrors, Get202601ReceivingByIdBoxesResponses, Get202601ReceivingByIdData, Get202601ReceivingByIdDistributionsData, Get202601ReceivingByIdDistributionsErrors, Get202601ReceivingByIdDistributionsResponses, Get202601ReceivingByIdErrors, Get202601ReceivingByIdLabelsData, Get202601ReceivingByIdLabelsErrors, Get202601ReceivingByIdLabelsResponses, Get202601ReceivingByIdResponses, Get202601ReceivingData, Get202601ReceivingErrors, Get202601ReceivingResponses, Get202601ReturnByIdData, Get202601ReturnByIdErrors, Get202601ReturnByIdResponses, Get202601ReturnData, Get202601ReturnErrors, Get202601ReturnResponses, Get202601ShipmentByShipmentIdData, Get202601ShipmentByShipmentIdErrors, Get202601ShipmentByShipmentIdGetLineItemsData, Get202601ShipmentByShipmentIdGetLineItemsErrors, Get202601ShipmentByShipmentIdGetLineItemsResponses, Get202601ShipmentByShipmentIdLogsData, Get202601ShipmentByShipmentIdLogsErrors, Get202601ShipmentByShipmentIdLogsResponses, Get202601ShipmentByShipmentIdResponses, Get202601ShipmentByShipmentIdTimelineData, Get202601ShipmentByShipmentIdTimelineErrors, Get202601ShipmentByShipmentIdTimelineResponses, Get202601ShipmentsTrackingData, Get202601ShipmentsTrackingErrors, Get202601ShipmentsTrackingResponses, Get202601ShippingMethodData, Get202601ShippingMethodErrors, Get202601ShippingMethodResponses, Get202601TaxonomyByIdData, Get202601TaxonomyByIdErrors, Get202601TaxonomyByIdParentData, Get202601TaxonomyByIdParentErrors, Get202601TaxonomyByIdParentResponses, Get202601TaxonomyByIdResponses, Get202601TaxonomyData, Get202601TaxonomyErrors, Get202601TaxonomyResponses, Get202601TrackingData, Get202601TrackingErrors, Get202601TrackingResponses, Get202601TransactionFeesData, Get202601TransactionFeesErrors, Get202601TransactionFeesResponses, Get202601WebhookData, Get202601WebhookErrors, Get202601WebhookResponses, Patch202601ProductByProductIdData, Patch202601ProductByProductIdResponses, Patch202601ProductByProductIdVariantsData, Patch202601ProductByProductIdVariantsResponses, Post202601InventoryHistoryQueryData, Post202601InventoryHistoryQueryResponses, Post202601OrderByOrderIdCancelData, Post202601OrderByOrderIdCancelErrors, Post202601OrderByOrderIdCancelResponses, Post202601OrderByOrderIdShipmentByShipmentIdCancelData, Post202601OrderByOrderIdShipmentByShipmentIdCancelErrors, Post202601OrderByOrderIdShipmentByShipmentIdCancelResponses, Post202601OrderData, Post202601OrderErrors, Post202601OrderEstimateData, Post202601OrderEstimateErrors, Post202601OrderEstimateResponses, Post202601OrderResponses, Post202601ProductByProductIdMoveVariantsData, Post202601ProductByProductIdMoveVariantsErrors, Post202601ProductByProductIdMoveVariantsResponses, Post202601ProductByProductIdVariantsData, Post202601ProductByProductIdVariantsResponses, Post202601ProductData, Post202601ProductMoveVariantsData, Post202601ProductMoveVariantsErrors, Post202601ProductMoveVariantsResponses, Post202601ProductResponses, Post202601ReceivingByIdCancelData, Post202601ReceivingByIdCancelErrors, Post202601ReceivingByIdCancelResponses, Post202601ReceivingData, Post202601ReceivingErrors, Post202601ReceivingResponses, Post202601ReceivingSetExternalSyncData, Post202601ReceivingSetExternalSyncErrors, Post202601ReceivingSetExternalSyncResponses, Post202601ReturnByIdCancelData, Post202601ReturnByIdCancelErrors, Post202601ReturnByIdCancelResponses, Post202601ReturnData, Post202601ReturnErrors, Post202601ReturnResponses, Post202601ShipmentBatchCancelData, Post202601ShipmentBatchCancelErrors, Post202601ShipmentBatchCancelResponses, Post202601ShipmentBatchUpdateTrackingUploadData, Post202601ShipmentBatchUpdateTrackingUploadErrors, Post202601ShipmentBatchUpdateTrackingUploadResponses, Post202601ShipmentByShipmentIdCancelData, Post202601ShipmentByShipmentIdCancelErrors, Post202601ShipmentByShipmentIdCancelResponses, Post202601ShipmentByShipmentIdUpdateLineItemsData, Post202601ShipmentByShipmentIdUpdateLineItemsErrors, Post202601ShipmentByShipmentIdUpdateLineItemsResponses, Post202601TransactionsQueryData, Post202601TransactionsQueryErrors, Post202601TransactionsQueryResponses, Post202601VariantByVariantIdConvertToBundleData, Post202601VariantByVariantIdConvertToBundleResponses, Post202601VariantByVariantIdMergeData, Post202601VariantByVariantIdMergeResponses, Post202601WebhookData, Post202601WebhookErrors, Post202601WebhookResponses, Put202601ReturnByIdData, Put202601ReturnByIdErrors, Put202601ReturnByIdResponses, Put202601ShipmentBulkUpdateShippingServiceData, Put202601ShipmentBulkUpdateShippingServiceErrors, Put202601ShipmentBulkUpdateShippingServiceResponses, Put202601ShipmentByShipmentIdUpdateAddressData, Put202601ShipmentByShipmentIdUpdateAddressErrors, Put202601ShipmentByShipmentIdUpdateAddressResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -857,4 +857,94 @@ export const get202601ReceivingByIdDistributions = <ThrowOnError extends boolean
     security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
     url: '/2026-01/receiving/{id}/distributions',
     ...options
+});
+
+/**
+ * Get Tracking by Shipment IDs
+ *
+ *
+ * Retrieves tracking information for one or more shipments by their ShipBob shipment IDs. Returns the current status, carrier details, estimated delivery time, and full tracking history for each shipment. Accepts between 1 and 25 shipment IDs per request.
+ *
+ */
+export const get202601ShipmentsTracking = <ThrowOnError extends boolean = false>(options?: Options<Get202601ShipmentsTrackingData, ThrowOnError>) => (options?.client ?? client).get<Get202601ShipmentsTrackingResponses, Get202601ShipmentsTrackingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/shipments-tracking',
+    ...options
+});
+
+/**
+ * Get Tracking by Tracking IDs
+ *
+ *
+ * Retrieves tracking information for one or more shipments by their carrier tracking IDs. Returns the current status, carrier details, estimated delivery time, and full tracking history for each tracking ID. Intended for platform-level consumers that reference shipments by carrier tracking number rather than ShipBob shipment ID.
+ *
+ */
+export const get202601Tracking = <ThrowOnError extends boolean = false>(options?: Options<Get202601TrackingData, ThrowOnError>) => (options?.client ?? client).get<Get202601TrackingResponses, Get202601TrackingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/tracking',
+    ...options
+});
+
+/**
+ * Get Shipment Line Items
+ *
+ *
+ * Retrieves the line items for a specific shipment.
+ *
+ */
+export const get202601ShipmentByShipmentIdGetLineItems = <ThrowOnError extends boolean = false>(options: Options<Get202601ShipmentByShipmentIdGetLineItemsData, ThrowOnError>) => (options.client ?? client).get<Get202601ShipmentByShipmentIdGetLineItemsResponses, Get202601ShipmentByShipmentIdGetLineItemsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/shipment/{shipmentId}:getLineItems',
+    ...options
+});
+
+/**
+ * Update Shipment Address
+ *
+ *
+ * Updates the shipping address for a specific shipment.
+ *
+ */
+export const put202601ShipmentByShipmentIdUpdateAddress = <ThrowOnError extends boolean = false>(options: Options<Put202601ShipmentByShipmentIdUpdateAddressData, ThrowOnError>) => (options.client ?? client).put<Put202601ShipmentByShipmentIdUpdateAddressResponses, Put202601ShipmentByShipmentIdUpdateAddressErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/shipment/{shipmentId}:updateAddress',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Shipment Line Items
+ *
+ *
+ * Updates the line items for a specific shipment. The request body must include the complete list of line items as returned by the GET /{shipmentId}:getLineItems endpoint — partial updates are not supported. Retrieve the current line items first, modify the desired fields, and submit the full payload.
+ *
+ */
+export const post202601ShipmentByShipmentIdUpdateLineItems = <ThrowOnError extends boolean = false>(options: Options<Post202601ShipmentByShipmentIdUpdateLineItemsData, ThrowOnError>) => (options.client ?? client).post<Post202601ShipmentByShipmentIdUpdateLineItemsResponses, Post202601ShipmentByShipmentIdUpdateLineItemsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/shipment/{shipmentId}:updateLineItems',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Bulk Update Shipping Service
+ *
+ *
+ * Updates the shipping service for multiple shipments in a single request.
+ *
+ */
+export const put202601ShipmentBulkUpdateShippingService = <ThrowOnError extends boolean = false>(options?: Options<Put202601ShipmentBulkUpdateShippingServiceData, ThrowOnError>) => (options?.client ?? client).put<Put202601ShipmentBulkUpdateShippingServiceResponses, Put202601ShipmentBulkUpdateShippingServiceErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, { scheme: 'bearer', type: 'http' }],
+    url: '/2026-01/shipment:bulkUpdateShippingService',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
 });

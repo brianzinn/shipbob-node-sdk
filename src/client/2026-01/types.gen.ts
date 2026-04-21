@@ -1372,6 +1372,14 @@ export type OrdersAddressViewModel = {
     zip_code?: string | null;
 };
 
+export type OrdersBulkActionApiResponse = {
+    /**
+     * Per-shipment results of the bulk operation
+     */
+    results?: Array<OrdersIApiDetailResponse> | null;
+    summary: OrdersSummaryResponse;
+};
+
 export type OrdersBulkUpdateResponseError = {
     code?: string | null;
     message?: string | null;
@@ -1392,6 +1400,21 @@ export type OrdersBulkUpdateResponseSummary = {
     failed?: number;
     successful?: number;
     total?: number;
+};
+
+export type OrdersBulkUpdateShippingServiceRequest = {
+    /**
+     * Reason for updating the shipping service
+     */
+    reason: string;
+    /**
+     * ID of the shipping service to assign to the shipments
+     */
+    requested_shipping_service_id: number;
+    /**
+     * List of shipment IDs to update the shipping service for
+     */
+    shipment_ids: Array<number>;
 };
 
 /**
@@ -1570,6 +1593,16 @@ export type OrdersCreateOrderModel = {
      */
     tags?: Array<OrdersTagViewModel> | null;
     type: OrdersOrderType;
+};
+
+export type OrdersErrorCode = 'INVALID_PARAMETER' | 'VALIDATION_ERROR' | 'DATABASE_UPDATE_ERROR' | 'REPROCESSING_ERROR' | 'DEALLOCATE_ERROR' | 'NOT_FOUND' | 'CONFLICT';
+
+export type OrdersErrorResponse = {
+    code?: OrdersErrorCode;
+    /**
+     * Human-readable description of the error
+     */
+    message?: string | null;
 };
 
 export type OrdersEstimateDetailViewModel = {
@@ -1843,6 +1876,22 @@ export type OrdersGetApiShippingmethodUnprocessableEntityObject = {
     [key: string]: Array<string>;
 };
 
+export type OrdersGetApiVVersionShipmentShipmentIdGetLineItemsShipmentIdInteger = number;
+
+export type OrdersGetApiVVersionShipmentShipmentIdGetLineItemsVersionString = string;
+
+export type OrdersIApiDetailResponse = {
+    error?: OrdersErrorResponse;
+    /**
+     * Unique identifier of the shipment
+     */
+    id?: number;
+    /**
+     * Indicates whether the operation was successful for this shipment
+     */
+    is_success?: boolean;
+};
+
 export type OrdersInternalShipmentViewModel = OrdersShipmentViewModel & {
     /**
      * Unique store order id of the shipment
@@ -1905,6 +1954,20 @@ export type OrdersInventoryViewModel = {
      */
     serial_numbers?: Array<string> | null;
 };
+
+export type OrdersLotInfo = {
+    /**
+     * Expiration or manufacturing date of the lot
+     */
+    lot_date?: string | null;
+    /**
+     * Lot number identifying a specific batch of inventory
+     */
+    lot_number?: string | null;
+    selection_method?: OrdersLotSelectionMethod;
+};
+
+export type OrdersLotSelectionMethod = 'ShipbobChooses' | 'Specific';
 
 /**
  * Measurements of a shipment
@@ -2190,6 +2253,10 @@ export type OrdersPostApiShipmentShipmentIdCancelUnprocessableEntityObject = {
     [key: string]: Array<string>;
 };
 
+export type OrdersPostApiVVersionShipmentShipmentIdUpdateLineItemsShipmentIdInteger = number;
+
+export type OrdersPostApiVVersionShipmentShipmentIdUpdateLineItemsVersionString = string;
+
 export type OrdersProductInfoViewModel = {
     /**
      * Numeric assignment per item. Used as a reference number for multiple purposes such as split orders, split containers, etc.
@@ -2229,6 +2296,21 @@ export type OrdersProductInfoViewModel = {
     upc?: string | null;
 };
 
+export type OrdersProductVariantDetail = {
+    /**
+     * Unique identifier of the product variant
+     */
+    id?: number;
+    /**
+     * Display name of the product variant
+     */
+    name?: string | null;
+    /**
+     * Stock keeping unit identifier for the product variant
+     */
+    sku?: string | null;
+};
+
 export type OrdersPutApiShipmentShipmentIdBadRequestObject = {
     [key: string]: Array<string>;
 };
@@ -2241,6 +2323,12 @@ export type OrdersPutApiShipmentShipmentIdOkOneOfArray = Array<OrdersShipmentVie
 export type OrdersPutApiShipmentShipmentIdShipbobChannelIdInteger = number;
 
 export type OrdersPutApiShipmentShipmentIdShipmentIdInteger = number;
+
+export type OrdersPutApiVVersionShipmentBulkUpdateShippingServiceVersionString = string;
+
+export type OrdersPutApiVVersionShipmentShipmentIdUpdateAddressShipmentIdInteger = number;
+
+export type OrdersPutApiVVersionShipmentShipmentIdUpdateAddressVersionString = string;
 
 /**
  * Information about the recipient of an order
@@ -2376,6 +2464,115 @@ export type OrdersShipMethodDetailViewModel = {
 export type OrdersShipMethodDetailViewModelArray = Array<OrdersShipMethodDetailViewModel>;
 
 export type OrdersShipmentAction = 'CleanSweep' | 'Reassign' | 'ReleaseOrderHold' | 'MoveToOnHoldAndKeepInventory' | 'MoveToOnHoldAndReleaseInventory' | 'Cancel' | 'AddLineItem' | 'RemoveLineItem' | 'UpdateShipOption';
+
+export type OrdersShipmentApiResponse = {
+    error?: OrdersErrorResponse;
+    /**
+     * Unique identifier of the shipment
+     */
+    id?: number;
+    /**
+     * Indicates whether the update was successful
+     */
+    is_success?: boolean;
+};
+
+export type OrdersShipmentLineItemDetail = {
+    /**
+     * Quantity of the inventory item committed for fulfillment
+     */
+    committed_quantity?: number;
+    /**
+     * Unique identifier of the inventory item
+     */
+    inventory_id?: number;
+    /**
+     * Indicates whether the inventory item is classified as hazardous material
+     */
+    is_hazmat?: boolean | null;
+    /**
+     * Indicates whether the inventory item is lot-tracked
+     */
+    is_lot?: boolean | null;
+    lot?: OrdersLotInfo;
+    product_variant?: OrdersProductVariantDetail;
+    /**
+     * Total quantity of the inventory item in the shipment
+     */
+    quantity?: number;
+    /**
+     * List of serial numbers assigned to this line item
+     */
+    serial_numbers?: Array<string> | null;
+};
+
+export type OrdersShipmentLineItemDetailArray = Array<OrdersShipmentLineItemDetail>;
+
+export type OrdersShipmentLineItemResponse = {
+    /**
+     * The action applied to this line item during the update
+     */
+    action?: string | null;
+    /**
+     * Unique identifier of the inventory item
+     */
+    inventory_id?: number;
+    /**
+     * The new value of the field after the update
+     */
+    new_value?: string | null;
+    /**
+     * The previous value of the field before the update
+     */
+    previous_value?: string | null;
+};
+
+export type OrdersShipmentLineItemsApiResponse = {
+    error?: OrdersErrorResponse;
+    /**
+     * Unique identifier of the shipment
+     */
+    id?: number;
+    /**
+     * Indicates whether the update was successful
+     */
+    is_success?: boolean;
+    /**
+     * List of line item changes applied to the shipment
+     */
+    shipment_line_items?: Array<OrdersShipmentLineItemResponse> | null;
+};
+
+export type OrdersShipmentLineItemsViewModel = {
+    /**
+     * ID of the fulfillment center assigned to fulfill this line item
+     */
+    fulfillment_center_id?: number;
+    /**
+     * Unique identifier of the shipment line item
+     */
+    id?: number;
+    /**
+     * Unique identifier of the inventory item
+     */
+    inventory_id: number;
+    /**
+     * Indicates whether the lot was manually assigned rather than auto-selected by ShipBob
+     */
+    is_manually_assigned_lot?: boolean;
+    /**
+     * Expiration or manufacturing date of the lot
+     */
+    lot_date?: string | null;
+    /**
+     * Lot number of the inventory item
+     */
+    lot_number?: string | null;
+    /**
+     * Quantity of the inventory item in the shipment
+     */
+    quantity: number;
+};
 
 export type OrdersShipmentLogViewModel = {
     /**
@@ -2589,6 +2786,21 @@ export type OrdersStatusInformationViewModel = {
     validation_messages?: Array<string> | null;
 };
 
+export type OrdersSummaryResponse = {
+    /**
+     * Number of shipments that failed to update
+     */
+    failed?: number;
+    /**
+     * Number of shipments that were updated successfully
+     */
+    successful?: number;
+    /**
+     * Total number of shipments included in the bulk operation
+     */
+    total?: number;
+};
+
 export type OrdersTagViewModel = {
     /**
      * The key of the tag
@@ -2636,6 +2848,56 @@ export type OrdersTrackingViewModel = {
      * URL to the website where a shipment can be tracked
      */
     tracking_url?: string | null;
+};
+
+export type OrdersUpdateAddressRequest = {
+    /**
+     * City of customer address
+     */
+    city: string;
+    /**
+     * Company name (optional)
+     */
+    company_name?: string | null;
+    /**
+     * Country code of customer address
+     */
+    country_code?: string | null;
+    /**
+     * Customer's email address
+     */
+    email?: string | null;
+    /**
+     * Phone number of Recipient address
+     */
+    phone_number?: string | null;
+    /**
+     * Name of customer
+     */
+    recipient_name?: string | null;
+    /**
+     * State of customer address
+     */
+    state?: string | null;
+    /**
+     * Street Address 1
+     */
+    street_address1: string;
+    /**
+     * Street Address 2
+     */
+    street_address2?: string | null;
+    /**
+     * Zipcode of customer address
+     */
+    zip_code?: string | null;
+};
+
+export type OrdersUpdateLineItemsRequest = {
+    /**
+     * Complete list of line items for the shipment. Must include all line items — partial updates are not supported
+     */
+    items: Array<OrdersShipmentLineItemsViewModel>;
 };
 
 /**
@@ -4402,6 +4664,10 @@ export type ReturnsInventoryItemDto = {
      */
     barcodes?: Array<string> | null;
     /**
+     * SKU of the parent bundle if this item was expanded from a bundle. Null for non-bundle items
+     */
+    bundle_parent_sku?: string | null;
+    /**
      * Unique id of the inventory
      */
     id?: number;
@@ -4429,6 +4695,10 @@ export type ReturnsInventoryItemV1Dto = {
      * List of actions taken
      */
     action_taken?: Array<ReturnsActionTakenDto> | null;
+    /**
+     * SKU of the parent bundle if this item was expanded from a bundle. Null for non-bundle items
+     */
+    bundle_parent_sku?: string | null;
     /**
      * Unique id of the inventory
      */
@@ -4928,7 +5198,7 @@ export type WebhooksObjectResult = Omit<WebhooksActionResult, '$type'> & {
     $type: 'Webhooks.ObjectResult';
 };
 
-export type WebhooksTopics = 'order.shipped' | 'order.shipment.delivered' | 'order.shipment.exception' | 'order.shipment.on_hold' | 'order.shipment.cancelled' | 'return.created' | 'return.updated' | 'return.completed';
+export type WebhooksTopics = 'order.shipped' | 'order.shipment.delivered' | 'order.shipment.exception' | 'order.shipment.on_hold' | 'order.shipment.cancelled' | 'return.created' | 'return.updated' | 'return.completed' | 'billing.charge.created' | 'billing.refund.created' | 'billing.credit.created';
 
 export type WebhooksUnprocessableEntityObjectResult = Omit<WebhooksObjectResult, '$type'> & {
     content_types?: Array<string> | null;
@@ -8164,3 +8434,202 @@ export type Get202601ReceivingByIdDistributionsResponses = {
 };
 
 export type Get202601ReceivingByIdDistributionsResponse = Get202601ReceivingByIdDistributionsResponses[keyof Get202601ReceivingByIdDistributionsResponses];
+
+export type Get202601ShipmentsTrackingData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * A list of ShipBob shipment IDs to retrieve tracking information for
+         */
+        ShipmentIds?: string;
+    };
+    url: '/2026-01/shipments-tracking';
+};
+
+export type Get202601ShipmentsTrackingErrors = {
+    /**
+     * Bad Request
+     */
+    400: TrackingGetApiV1PublictrackingShipmentsBadRequestString;
+    /**
+     * Authorization missing or invalid
+     */
+    401: unknown;
+    /**
+     * The provided credentials are not authorized to access this resource
+     */
+    403: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: TrackingGetApiV1PublictrackingShipmentsInternalServerErrorString;
+};
+
+export type Get202601ShipmentsTrackingError = Get202601ShipmentsTrackingErrors[keyof Get202601ShipmentsTrackingErrors];
+
+export type Get202601ShipmentsTrackingResponses = {
+    /**
+     * OK
+     */
+    200: TrackingShipmentTrackingResponseArray;
+};
+
+export type Get202601ShipmentsTrackingResponse = Get202601ShipmentsTrackingResponses[keyof Get202601ShipmentsTrackingResponses];
+
+export type Get202601TrackingData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * A list of carrier tracking IDs to retrieve tracking information for
+         */
+        TrackingIds?: string;
+    };
+    url: '/2026-01/tracking';
+};
+
+export type Get202601TrackingErrors = {
+    /**
+     * Bad Request
+     */
+    400: TrackingGetApiV1PublictrackingTrackingIdsBadRequestString;
+    /**
+     * Authorization missing or invalid
+     */
+    401: unknown;
+    /**
+     * The provided credentials are not authorized to access this resource
+     */
+    403: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: TrackingGetApiV1PublictrackingTrackingIdsInternalServerErrorString;
+};
+
+export type Get202601TrackingError = Get202601TrackingErrors[keyof Get202601TrackingErrors];
+
+export type Get202601TrackingResponses = {
+    /**
+     * OK
+     */
+    200: TrackingPlatformShipmentTrackingResponseArray;
+};
+
+export type Get202601TrackingResponse = Get202601TrackingResponses[keyof Get202601TrackingResponses];
+
+export type Get202601ShipmentByShipmentIdGetLineItemsData = {
+    body?: never;
+    path: {
+        /**
+         * Unique identifier of the shipment
+         */
+        shipmentId: number;
+    };
+    query?: never;
+    url: '/2026-01/shipment/{shipmentId}:getLineItems';
+};
+
+export type Get202601ShipmentByShipmentIdGetLineItemsErrors = {
+    /**
+     * Not Found
+     */
+    404: OrdersErrorResponse;
+};
+
+export type Get202601ShipmentByShipmentIdGetLineItemsError = Get202601ShipmentByShipmentIdGetLineItemsErrors[keyof Get202601ShipmentByShipmentIdGetLineItemsErrors];
+
+export type Get202601ShipmentByShipmentIdGetLineItemsResponses = {
+    /**
+     * OK
+     */
+    200: OrdersShipmentLineItemDetailArray;
+};
+
+export type Get202601ShipmentByShipmentIdGetLineItemsResponse = Get202601ShipmentByShipmentIdGetLineItemsResponses[keyof Get202601ShipmentByShipmentIdGetLineItemsResponses];
+
+export type Put202601ShipmentByShipmentIdUpdateAddressData = {
+    body?: OrdersUpdateAddressRequest;
+    path: {
+        /**
+         * Unique identifier of the shipment
+         */
+        shipmentId: number;
+    };
+    query?: never;
+    url: '/2026-01/shipment/{shipmentId}:updateAddress';
+};
+
+export type Put202601ShipmentByShipmentIdUpdateAddressErrors = {
+    /**
+     * Bad Request
+     */
+    400: OrdersErrorResponse;
+};
+
+export type Put202601ShipmentByShipmentIdUpdateAddressError = Put202601ShipmentByShipmentIdUpdateAddressErrors[keyof Put202601ShipmentByShipmentIdUpdateAddressErrors];
+
+export type Put202601ShipmentByShipmentIdUpdateAddressResponses = {
+    /**
+     * OK
+     */
+    200: OrdersShipmentApiResponse;
+};
+
+export type Put202601ShipmentByShipmentIdUpdateAddressResponse = Put202601ShipmentByShipmentIdUpdateAddressResponses[keyof Put202601ShipmentByShipmentIdUpdateAddressResponses];
+
+export type Post202601ShipmentByShipmentIdUpdateLineItemsData = {
+    body?: OrdersUpdateLineItemsRequest;
+    path: {
+        /**
+         * Unique identifier of the shipment
+         */
+        shipmentId: number;
+    };
+    query?: never;
+    url: '/2026-01/shipment/{shipmentId}:updateLineItems';
+};
+
+export type Post202601ShipmentByShipmentIdUpdateLineItemsErrors = {
+    /**
+     * Bad Request
+     */
+    400: OrdersErrorResponse;
+};
+
+export type Post202601ShipmentByShipmentIdUpdateLineItemsError = Post202601ShipmentByShipmentIdUpdateLineItemsErrors[keyof Post202601ShipmentByShipmentIdUpdateLineItemsErrors];
+
+export type Post202601ShipmentByShipmentIdUpdateLineItemsResponses = {
+    /**
+     * OK
+     */
+    200: OrdersShipmentLineItemsApiResponse;
+};
+
+export type Post202601ShipmentByShipmentIdUpdateLineItemsResponse = Post202601ShipmentByShipmentIdUpdateLineItemsResponses[keyof Post202601ShipmentByShipmentIdUpdateLineItemsResponses];
+
+export type Put202601ShipmentBulkUpdateShippingServiceData = {
+    body?: OrdersBulkUpdateShippingServiceRequest;
+    path?: never;
+    query?: never;
+    url: '/2026-01/shipment:bulkUpdateShippingService';
+};
+
+export type Put202601ShipmentBulkUpdateShippingServiceErrors = {
+    /**
+     * Bad Request
+     */
+    400: OrdersErrorResponse;
+};
+
+export type Put202601ShipmentBulkUpdateShippingServiceError = Put202601ShipmentBulkUpdateShippingServiceErrors[keyof Put202601ShipmentBulkUpdateShippingServiceErrors];
+
+export type Put202601ShipmentBulkUpdateShippingServiceResponses = {
+    /**
+     * OK
+     */
+    200: OrdersBulkActionApiResponse;
+};
+
+export type Put202601ShipmentBulkUpdateShippingServiceResponse = Put202601ShipmentBulkUpdateShippingServiceResponses[keyof Put202601ShipmentBulkUpdateShippingServiceResponses];
